@@ -4,6 +4,7 @@
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <vector>
+#include "Parser.h"
 
 struct State {
     int index;
@@ -26,7 +27,7 @@ struct Observation {
 class Simulator {
 public:
     Simulator() {}
-    Simulator(int state_num, int action_num);
+    Simulator(int state_num, int action_num, int obs_num);
 
     std::vector<State> states;
     std::vector<Action> actions; 
@@ -40,10 +41,11 @@ public:
 
     boost::numeric::ublas::vector<float> belief;
 
-    void init_belief();
-    void select_action(boost::numeric::ublas::vector<float> b, Action& a); 
-    void update_belief(boost::numeric::ublas::vector<float>& b);
-    void make_observation(State underlying_state, Observation& observation); 
+    void initBelief(boost::numeric::ublas::vector<float> &belief);
+    void selectAction(const boost::numeric::ublas::vector<float> &b, Action &a, 
+        const Parser& parser); 
+    void updateBelief(boost::numeric::ublas::vector<float> &b);
+    void makeObservation(const State &underlying_state, Observation &observation); 
 };
 
 #endif
