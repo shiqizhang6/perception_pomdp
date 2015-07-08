@@ -8,21 +8,28 @@
 
 struct State {
     int index;
-    State() {index=0; }
-    State(int i): index(i) {}
+    std::string name;  
+
+    State() { index = -1; name = (""); }
+    State(int i, std::string n) : index(i), name(n) {}
 }; 
 
 struct Action {
     int index;
-    Action() {index=0; }
-    Action(int i): index(i) {}
+    std::string name; 
+
+    Action() { index = -1; name = (""); }
+    Action(int i, std::string n) : index(i), name(n) {}
 }; 
 
 struct Observation {
     int index;
-    Observation() {index=0; }
-    Observation(int i): index(i) {}
+    std::string name; 
+
+    Observation() { index = -1; name = (""); }
+    Observation(int i, std::string n) : index(i), name(n) {}
 };
+
 
 class Simulator {
 public:
@@ -33,19 +40,18 @@ public:
     std::vector<Action> actions; 
     std::vector<Observation> observations; 
 
-    State underlying_state; 
+    State state; 
     Action action; 
     Observation observation; 
+    boost::numeric::ublas::vector<float> belief;
+
     float reward; 
     float acc_reward; 
 
-    boost::numeric::ublas::vector<float> belief;
-
-    void initBelief(boost::numeric::ublas::vector<float> &belief);
-    void selectAction(const boost::numeric::ublas::vector<float> &b, Action &a, 
-        const Parser& parser); 
-    void updateBelief(boost::numeric::ublas::vector<float> &b);
-    void makeObservation(const State &underlying_state, Observation &observation); 
+    void initBelief(boost::numeric::ublas::vector<float> &;
+    void selectAction(const boost::numeric::ublas::vector<float> &, Action &, const Parser &); 
+    void updateBelief(boost::numeric::ublas::vector<float> &);
+    void makeObservation(const State &, Observation &); 
 };
 
-#endif
+#endif /* end of SIMULATOR_H */

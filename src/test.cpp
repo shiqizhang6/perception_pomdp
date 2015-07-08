@@ -3,12 +3,21 @@
 #include "Simulator.h"
 
 #include <iostream>
-#include <boost/numeric/ublas/io.hpp> 
+#include <boost/filesystem.hpp>
 #include <string>
 
 int main(int argc, char** argv) {
 
-    std::string path("/home/szhang/projects/2015_perception_pomdp/models/out_processed.policy");
+    std::string sony_path, zoidberg_path, path; 
+    sony_path = "/home/szhang/projects/2015_perception_pomdp/models/out_processed.policy"; 
+    zoidberg_path = "/home/shiqi/projects/2015_perception_pomdp/models/out_processed.policy"; 
+
+    if (boost::filesystem::exists(sony_path))
+        path = sony_path;
+    else if (boost::filesystem::exists(zoidberg_path))
+        path = zoidberg_path; 
+    else
+        std::cout << "Error: cannot find policy" << std::endl; 
 
     Parser parser = Parser(path); 
     std::cout << "finished parser initialization" << std::endl; 
