@@ -1,22 +1,68 @@
 
 #include "Simulator.h"
 
-Simulator::Simulator(int state_num, int action_num, int obs_num) {
-    for (int i=0; i<state_num; i++) {
-        State s = State(i); 
-        states.push_back(s); 
+std::ostream& operator<< (std::ostream& s, const Action& action) {
+    if (action == COLOR) {
+        s << "Color"; 
+    } else if (action == CONTENT) {
+        s << "Content";
+    } else if (action == WEIGHT) {
+        s << "Weight";
+    } else {
+        s << "Unknown"; 
     }
-    for (int i=0; i<action_num; i++) {
-        Action a = Action(i);
-        actions.push_back(a);
+    return s; 
+}
+
+std::ostream& operator<< (std::ostream& s, const ObservationColor& o) {
+    s << o; 
+    return s; 
+}
+std::ostream& operator<< (std::ostream& s, const ObservationContent& o) {
+    s << o; 
+    return s; 
+}
+std::ostream& operator<< (std::ostream& s, const ObservationWeight& o) {
+    s << o; 
+    return s; 
+}
+
+
+Simulator::Simulator() {
+
+    int index;
+
+    // initialize state set
+    index = 0; 
+    for (int i=0; i < COLOR_LENGTH; i++ {
+        for (int j=0; j < CONTENT_LENGTH; j++) {
+            for (int k=0; k < WEIGHT_LENGTH; k++) {
+                states_.push_back(new State(index++, static_cast<Color>(i), 
+                    static_cast<Content>(j), static_cast<Weigth>(k)));
+            }
+        }
     }
-    for (int i=0; i<obs_num; i++) {
-        Observation o = Observation(i);
-        observations.push_back(o);
+
+    // initialize action set
+    for (int i=0; i < ACTION_LENGTH; i++) {
+        actions.push_back(static_cast<Action>(i));
+    }
+
+    index = 0; 
+    // initialize observation set
+    for (int i=0; i < COLOR_LENGTH; i++) {
+        observations.push_back(new ObservationColor(index++, static_cast<Color>(i)));
+    }
+    for (int i=0; i < CONTENT_LENGTH; i++) {
+        observations.push_back(new ObservationContent(index++, static_cast<Content>(i)));
+    }
+    for (int i=0; i < WEIGHT_LENGTH; i++) {
+        observations.push_back(new ObservationWeight(index++, static_cast<Weight>(i)));
     }
 }
 
 void Simulator::initBelief(boost::numeric::ublas::vector<float> &belief) {
+    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
     int state_num = states.size(); 
     belief = boost::numeric::ublas::vector<float>(state_num); 
     for (int i=0; i<state_num; i++) {

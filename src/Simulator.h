@@ -5,53 +5,87 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <vector>
 #include "Parser.h"
+#include "Properties.h"
 
-struct State {
-    int index;
-    std::string name;  
+class State {
+protected:
+    int index_;
+    bool is_terminal_; 
+}
 
-    State() { index = -1; name = (""); }
-    State(int i, std::string n) : index(i), name(n) {}
+class StateTerminal : State {
+    std::string name_; 
+
+    StateTerminal() {}
+
+    StateTerminal(int index) : index_(index) {
+        name_ = "Terminal"; 
+        is_terminal_ = true; 
+    }
+}
+
+class StateNonTerminal : State {
+    Color color_;
+    Content content_; 
+    Weight weight_; 
+
+    std::string name_;  
+
+    StateNonTerminal() {}
+
+    StateNonTerminal(int index, Color color, Content content, Weight weight) 
+        : index_(index), color_(color), content_(content), weight_(weight) {
+
+        std::ostringstream stream; 
+        stream << color_ << "-" << content_ << "-" << weight_; 
+        name_ = stream.str(); 
+        is_terminal_ = false; 
+    }
 }; 
 
-struct Action {
-    int index;
-    std::string name; 
+enum Action { COLOR, CONTENT, WEIGHT, ACTION_LENGTH }; 
 
-    Action() { index = -1; name = (""); }
-    Action(int i, std::string n) : index(i), name(n) {}
-}; 
-
-struct Observation {
-    int index;
-    std::string name; 
-
-    Observation() { index = -1; name = (""); }
-    Observation(int i, std::string n) : index(i), name(n) {}
+class Observation {
+protected: 
+    int index_;
 };
 
+class ObservationColor : Observation {
+    Color color_;
+    ObservationColor(int index, Color color) : index_(index), color_(color) {}
+}; 
+
+class ObservationContent : Observation {
+    Content content_; 
+    ObservationContent(int index, Content content) : index_(index), content_(content) {}
+}; 
+
+class ObservationWeight : Observation {
+    Weight weight_; 
+    ObservationWeight(int index, Weight weight) : index_(index), weight_(weight) {}
+}
 
 class Simulator {
+
 public:
     Simulator() {}
-    Simulator(int state_num, int action_num, int obs_num);
-
-    std::vector<State> states;
-    std::vector<Action> actions; 
-    std::vector<Observation> observations; 
-
-    State state; 
-    Action action; 
-    Observation observation; 
-    boost::numeric::ublas::vector<float> belief;
-
-    float reward; 
-    float acc_reward; 
 
     void initBelief(boost::numeric::ublas::vector<float> &;
     void selectAction(const boost::numeric::ublas::vector<float> &, Action &, const Parser &); 
     void updateBelief(boost::numeric::ublas::vector<float> &);
     void makeObservation(const State &, Observation &); 
+
+private:
+    std::vector<State *> states_;
+    std::vector<Action> actions_; 
+    std::vector<Observation *> observations_; 
+
+    State state_; 
+    Action action_; 
+    Observation observation_; 
+    boost::numeric::ublas::vector<float> belief_;
+
+    float reward_, acc_reward_; 
 };
 
 #endif /* end of SIMULATOR_H */
