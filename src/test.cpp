@@ -6,6 +6,9 @@
 #include <boost/filesystem.hpp>
 #include <string>
 
+#define GRASP_SUCCESS_RATE (0.8)
+#define DROP_SUCCESS_RATE (0.8)
+
 int main(int argc, char** argv) {
 
     std::string sony_path, zoidberg_path, path; 

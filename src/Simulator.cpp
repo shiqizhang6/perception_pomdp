@@ -2,15 +2,15 @@
 
 std::ostream& operator<< (std::ostream& s, const SensingModality& sm) {
     if (sm == COLOR) {
-        s << "Color"; 
+        s << "color"; 
     } else if (sm == CONTENT) {
-        s << "Content";
+        s << "content";
     } else if (sm == WEIGHT) {
-        s << "Weight";
+        s << "weight";
     } else if (sm == NONE) {
-        s << "None"; 
+        s << "none"; 
     } else {
-        s << "Unknown"; 
+        s << "unknown"; 
     }
     return s; 
 }

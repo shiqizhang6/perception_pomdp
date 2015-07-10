@@ -3,41 +3,41 @@
 
 std::ostream& operator<<(std::ostream& stream, const Color& color) {
     if (color == RED) {
-        stream << "Red"; 
+        stream << "red"; 
     } else if (color == GREEN) {
-        stream << "Green";
+        stream << "green";
     } else if (color == BLUE) {
-        stream << "Blue"; 
+        stream << "blue"; 
     } else {
-        stream << "Unknown"; 
+        stream << "unknown"; 
     }
     return stream; 
 }
 
 std::ostream& operator<<(std::ostream& stream, const Content& content) {
     if (content == CONTENT0) {
-        stream << "Content0"; 
+        stream << "content0"; 
     } else if (content == CONTENT1) {
-        stream << "Content1";
+        stream << "content1";
     } else if (content == CONTENT2) {
-        stream << "Content2";
+        stream << "content2";
     } else if (content == CONTENT3) {
-        stream << "Content3";
+        stream << "content3";
     } else {
-        stream << "Unknown"; 
+        stream << "unknown"; 
     }
     return stream; 
 }
 
 std::ostream& operator<<(std::ostream& stream, const Weight& weight) {
     if (weight == HEAVY) {
-        stream << "Heavy";
+        stream << "heavy";
     } else if (weight == MEDIUM) {
-        stream << "Medium";
+        stream << "medium";
     } else if (wegiht == LIGHT) {
-        stream << "Light";
+        stream << "light";
     } else {
-        stream << "Unknown";
+        stream << "unknown";
     }
     return stream; 
 }

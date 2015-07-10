@@ -139,17 +139,26 @@ class Simulator {
 public:
     Simulator() {}
 
+    Array3 tra_model_; 
+    Array3 obs_model_; 
+    Array3 rew_model_; 
+
+    void loadTraModel(); 
+    void loadObsModel(const std::string );
+    void loadRewModel(const std::string ); 
+
+    int getTerminalStateIndex(); 
+    int getNonTerminalStateIndex(Color, Content, Weight, bool);
+    int getActionIndex(std::string); 
+    int getObservationIndex(SensingModality, int)
+
     void initBelief(boost::numeric::ublas::vector<float> &;
     void selectAction(const boost::numeric::ublas::vector<float> &, Action &, const Parser &); 
     void updateBelief(boost::numeric::ublas::vector<float> &);
     void makeObservation(const State &, Observation &); 
 
-    Array3 obs_model_; 
-    Array3 rew_model_; 
-    Array3 tra_model_; 
-
+    std::vector<Action *> actions_; 
     std::vector<State *> states_;
-    std::vector<Action> actions_; 
     std::vector<Observation *> observations_; 
 
     State state_; 
