@@ -1,13 +1,14 @@
-
 #include "Simulator.h"
 
-std::ostream& operator<< (std::ostream& s, const Action& action) {
-    if (action == COLOR) {
+std::ostream& operator<< (std::ostream& s, const SensingModality& sm) {
+    if (sm == COLOR) {
         s << "Color"; 
-    } else if (action == CONTENT) {
+    } else if (sm == CONTENT) {
         s << "Content";
-    } else if (action == WEIGHT) {
+    } else if (sm == WEIGHT) {
         s << "Weight";
+    } else if (sm == NONE) {
+        s << "None"; 
     } else {
         s << "Unknown"; 
     }
@@ -27,29 +28,32 @@ std::ostream& operator<< (std::ostream& s, const ObservationWeight& o) {
     return s; 
 }
 
-
 Simulator::Simulator() {
 
     int index;
 
     // initialize state set
     index = 0; 
-    for (int i=0; i < COLOR_LENGTH; i++ {
-        for (int j=0; j < CONTENT_LENGTH; j++) {
-            for (int k=0; k < WEIGHT_LENGTH; k++) {
-                states_.push_back(new State(index++, static_cast<Color>(i), 
-                    static_cast<Content>(j), static_cast<Weigth>(k)));
+    for (int h=0; h <= 1; h++) {
+        for (int i=0; i < COLOR_LENGTH; i++) {
+            for (int j=0; j < CONTENT_LENGTH; j++) {
+                for (int k=0; k < WEIGHT_LENGTH; k++) {
+                    states_.push_back(new StateNonTerminal(index++, 
+                        static_cast<Color>(i), static_cast<Content>(j), 
+                        static_cast<Weigth>(k), h));
+                }
             }
         }
     }
+    states_.push_back(new StateTerminal(index)); 
 
     // initialize action set
     for (int i=0; i < ACTION_LENGTH; i++) {
         actions.push_back(static_cast<Action>(i));
     }
 
-    index = 0; 
     // initialize observation set
+    index = 0; 
     for (int i=0; i < COLOR_LENGTH; i++) {
         observations.push_back(new ObservationColor(index++, static_cast<Color>(i)));
     }
@@ -59,14 +63,24 @@ Simulator::Simulator() {
     for (int i=0; i < WEIGHT_LENGTH; i++) {
         observations.push_back(new ObservationWeight(index++, static_cast<Weight>(i)));
     }
+
 }
 
 void Simulator::initBelief(boost::numeric::ublas::vector<float> &belief) {
-    // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-    int state_num = states.size(); 
-    belief = boost::numeric::ublas::vector<float>(state_num); 
-    for (int i=0; i<state_num; i++) {
-        belief[i] = (i==state_num-1) ? 0.0 : 1.0/(state_num-1.0); 
+
+    int state_num = states_.size(), terminal_state_num = 0; 
+
+    belief_ = boost::numeric::ublas::vector<float>(state_num); 
+
+    // count the number of terminal states - currently only one
+    for (int i=0; i < states_.size(); i++) {
+        if (true == states_[i]->is_terminal_) {
+            terminal_state_num++; 
+        }
+    }
+
+    for (int i=0; i < states_.size(); i++) {
+        belief_[i] = (states_[i]->is_terminal_) ? (0.0) : (1.0 / (state_num - terminal_state_num)); 
     }
 }
 
@@ -87,6 +101,4 @@ void Simulator::selectAction(const boost::numeric::ublas::vector<float> &b,
     else
         action.index = parser.action_vector[pos]; 
 }
-
-
 
