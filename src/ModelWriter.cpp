@@ -31,9 +31,7 @@ void Simulator::writeModelToFile(std::string file) {
     str += "\n\nobservations: "; 
     
     for (int i=0; i<observations_.size(); i++) {
-        std::ostringstream oss; 
-        oss << observations_[i]; 
-        str += oss.str() + " "; 
+        str += observations_[i]->name_ + " "; 
     }
 
     for (int i=0; i<tra_model_.shape()[0]; i++) {
@@ -58,12 +56,12 @@ void Simulator::writeModelToFile(std::string file) {
         }
     }
 
+    str += "\n\n"; 
     for (int i=0; i<rew_model_.size1(); i++) {
-        str += "\n\nR: " + actions_[i]->name_ + " "; 
-
         for (int j=0; j<rew_model_.size2(); j++) {
-            str += actions_[i]->name_ + "\t:\t" + states_[j]->name_; 
+            str += "R: " + actions_[i]->name_ + "\t:\t" + states_[j]->name_; 
             str += "\t: * : *\t" + boost::lexical_cast<std::string> (rew_model_(i, j)); 
+            str += "\n"; 
         }
     }
 

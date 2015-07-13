@@ -1,5 +1,47 @@
 #include "Simulator.h"
 
+std::ostream& operator<<(std::ostream& stream, const Color& color) {
+
+    if (color == RED) {
+        stream << "red"; 
+    } else if (color == GREEN) {
+        stream << "green";
+    } else if (color == BLUE) {
+        stream << "blue"; 
+    } else {
+        stream << "unknown"; 
+    }
+    return stream; 
+}
+
+std::ostream& operator<<(std::ostream& stream, const Content& content) {
+    if (content == CONTENT0) {
+        stream << "content0"; 
+    } else if (content == CONTENT1) {
+        stream << "content1";
+    } else if (content == CONTENT2) {
+        stream << "content2";
+    } else if (content == CONTENT3) {
+        stream << "content3";
+    } else {
+        stream << "unknown"; 
+    }
+    return stream; 
+}
+
+std::ostream& operator<<(std::ostream& stream, const Weight& weight) {
+    if (weight == HEAVY) {
+        stream << "heavy";
+    } else if (weight == MEDIUM) {
+        stream << "medium";
+    } else if (weight == LIGHT) {
+        stream << "light";
+    } else {
+        stream << "unknown";
+    }
+    return stream; 
+}
+
 std::ostream& operator<< (std::ostream& s, const SensingModality& sm) {
     if (sm == COLOR) {
         s << "color"; 
@@ -15,17 +57,35 @@ std::ostream& operator<< (std::ostream& s, const SensingModality& sm) {
     return s; 
 }
 
-std::ostream& operator<< (std::ostream& s, const ObservationColor& o) {
-    s << o;     return s; 
-}
-std::ostream& operator<< (std::ostream& s, const ObservationContent& o) {
-    s << o;     return s; 
-}
-std::ostream& operator<< (std::ostream& s, const ObservationWeight& o) {
-    s << o;     return s; 
+ObservationColor::ObservationColor(Color color) : color_(color) {
+
+    sensing_modality_ = COLOR; 
+
+    std::cout << color_ << std::endl; 
+    std::ostringstream oss;
+    oss << color_;
+    name_ = oss.str(); 
 }
 
+ObservationContent::ObservationContent(Content content) : content_(content) {
+    sensing_modality_ = CONTENT; 
+    std::ostringstream oss; 
+    oss << content_;
+    name_ = oss.str(); 
+}
+
+ObservationWeight::ObservationWeight(Weight weight) : weight_(weight) {
+    sensing_modality_ = WEIGHT; 
+    std::ostringstream oss; 
+    oss << weight_;
+    name_ = oss.str(); 
+}
+
+
+
 Simulator::Simulator() {
+
+    std::cout << "creating templates for states, action and observations" << std::endl; 
 
     // initialize state set
     for (int i=0; i < COLOR_LENGTH; i++)
@@ -74,6 +134,8 @@ Simulator::Simulator() {
     for (int i=0; i < WEIGHT_LENGTH; i++) {
         observations_.push_back(new ObservationWeight(static_cast<Weight>(i)));
     }
+    observations_.push_back(new ObservationNone()); 
+
 
     std::string laptop_path, desktop_path, laptop_obs_path, desktop_obs_path, laptop_reward_path, desktop_reward_path; 
 
@@ -86,9 +148,13 @@ Simulator::Simulator() {
     desktop_reward_path = desktop_path + "action_costs.txt"; 
 
     // load transition model
+    std::cout << "\nworking on tra_model_ ... " << std::endl; 
+
     loadTraModel(); 
 
     // load observation model
+    std::cout << "\nworking on obs_model_ ..." << std::endl; 
+
     if (boost::filesystem::exists(laptop_obs_path))
         loadObsModel(laptop_obs_path); 
     else if (boost::filesystem::exists(desktop_obs_path))
@@ -97,12 +163,15 @@ Simulator::Simulator() {
         std::cerr << "path (observation model) invalid" << std::endl; 
 
     // load reward model
+    std::cout << "\nworking on rew_model_ ..." << std::endl; 
     if (boost::filesystem::exists(laptop_reward_path))
         loadRewModel(laptop_reward_path); 
     else if (boost::filesystem::exists(desktop_reward_path))
         loadRewModel(desktop_reward_path); 
     else
         std::cerr << "path (reward model) invalid"  << std::endl; 
+
+    std::cout << "model initialization done" << std::endl; 
     
 }
 

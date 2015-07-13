@@ -13,11 +13,14 @@ void Simulator::loadTraModel() {
     action_num = actions_.size();
     state_num = states_.size(); 
 
-    tra_model_ = Array3( boost::extents[action_num][state_num][state_num] );
+    // note that boost::reshape won't work coz the # of elements grow
+    Array3::extent_gen extents;
+    tra_model_.resize(extents[action_num][state_num][state_num]);
 
     Array3::index action, curr, next; 
 
-    // initialize with all zeros
+    std::cout << "\tinitialize tra_model_ with all zeros" << std::endl; 
+
     for (Array3::index a=0; a != action_num; a++)
         for (Array3::index c=0; c != state_num; c++)
             for (Array3::index n=0; n != state_num; n++)
@@ -69,13 +72,14 @@ void Simulator::loadTraModel() {
             }
         }
     }
+    std::cout << "\tfinished tra_model_ initialization" << std::endl; 
 }
 
 // assuming observation probabilities separated by spaces
 void Simulator::loadObsModel(const std::string path) {
 
-    if (boost::filesystem::is_directory(path))
-        std::cerr << "path to observation model files does not exist" << std::endl; 
+    if (false == boost::filesystem::is_directory(path))
+        std::cerr << "path does not exist: " << path << std::endl; 
 
     int action_num, state_num, observation_num; 
 
@@ -83,25 +87,43 @@ void Simulator::loadObsModel(const std::string path) {
     state_num = states_.size(); 
     observation_num = observations_.size(); 
 
-    obs_model_ = Array3( boost::extents[action_num][state_num][observation_num] );
+    // note that boost::reshape won't work coz the # of elements grow
+    Array3::extent_gen extents;
+    obs_model_.resize(extents[action_num][state_num][observation_num]);
 
     // initialize with all zeros
-    for (Array3::index a=0; a != action_num; a++)
-        for (Array3::index c=0; c != state_num; c++)
-            for (Array3::index n=0; n != observation_num; n++)
-                obs_model_[a][c][n] = 0.0; 
+    for (Array3::index a=0; a != action_num; a++) {
+
+        for (Array3::index c=0; c != state_num; c++) {
+            for (Array3::index n=0; n != observation_num; n++) {
+                if (true == actions_[a]->is_terminating_ and 
+                    observations_[n]->sensing_modality_ == NONE) {
+
+                    obs_model_[a][c][n] = 1.0; 
+                } else {
+                    obs_model_[a][c][n] = 0.0; 
+                }
+            }
+        }
+    }
 
     boost::filesystem::path bpath(path); 
+    boost::filesystem::directory_iterator it(bpath), end_it; 
 
-    for (boost::filesystem::path::iterator it = bpath.begin(); it != bpath.end(); it++) {
+    for ( ; it != end_it; it++) {
+
+        std::string filename = it->path().filename().string(); 
 
         // assuming file has been renamed, e.g., "grasp_color.txt"
-        std::string file = path + it->string(); 
-        std::string action_name = it->string().substr(0, it->string().find("_")); 
-        std::string property_name = it->string().substr(
-            it->string().find("_") + 1, it->string().find(".") - it->string().find("_"));        
+        std::cout << "\tfile name: " << filename << " " << std::endl; ; 
 
-        std::cout << "working on " << file << " with action " << action_name << ", property " << property_name << std::endl; 
+        std::string file = path + filename; 
+        std::string action_name = filename.substr(0, filename.find("_")); 
+        std::string property_name = filename.substr(
+            filename.find("_") + 1, filename.find(".") - filename.find("_"));        
+
+        // std::cout << "\tworking on " << file << " with action " << action_name 
+        //           << ", property " << property_name << std::endl; 
 
         Array3::index action_index = getActionIndex(action_name); 
 
@@ -150,9 +172,10 @@ void Simulator::loadObsModel(const std::string path) {
 void Simulator::loadRewModel(const std::string file) {
 
     if (boost::filesystem::exists(file))
-        std::cerr << "path to reward file does not exist" << std::endl; 
-    else 
         std::cout << "reading action-cost file: " << file << std::endl; 
+    else 
+        std::cerr << "path to reward file does not exist" << std::endl; 
+
  
     std::ifstream infile; 
     infile.open(file.c_str()); 
@@ -179,6 +202,7 @@ void Simulator::loadRewModel(const std::string file) {
     Weight a_weight; 
 
     for (int i=0; i<actions_.size(); i++) {
+        // std::cout << "action name: " << actions_[i]->name_ << std::endl; 
         for (int j=0; j<states_.size(); j++) {
 
             if (true == states_[j]->is_terminal_) {
@@ -217,25 +241,32 @@ void Simulator::loadRewModel(const std::string file) {
     infile.close(); 
 }
 
-void Simulator::getStateIndices(SensingModality sm, int index, std::vector<int> set) {
+void Simulator::getStateIndices(SensingModality sm, int index, std::vector<int> &set) {
     
     set.clear(); 
+
     for (int i=0; i<states_.size(); i++) {
-        if (sm == COLOR and index < COLOR_LENGTH)
-            if (static_cast<Color> (index) == static_cast<StateNonTerminal *>(states_[i])->color_)
+
+        if (sm == COLOR and index < COLOR_LENGTH) {
+            //std::cout << "sm == COLOR" << std::endl; 
+            if (index == static_cast<StateNonTerminal *>(states_[i])->color_) {
+                //std::cout << "push_back: " << i << std::endl; 
                 set.push_back(i); 
 
-        else if (sm == CONTENT and index < CONTENT_LENGTH)
-            if (static_cast<Content> (index) == static_cast<StateNonTerminal *>(states_[i])->content_)
+            }
+        } else if (sm == CONTENT and index < CONTENT_LENGTH) {
+            //std::cout << "sm == CONTENT" << std::endl; 
+            if (index == static_cast<StateNonTerminal *>(states_[i])->content_) {
+                //std::cout << "push_back: " << i << std::endl; 
                 set.push_back(i); 
-
-        else if (sm == WEIGHT and index < WEIGHT_LENGTH)
-            if (static_cast<Weight> (index) == static_cast<StateNonTerminal *>(states_[i])->weight_)
+            }
+        } else if (sm == WEIGHT and index < WEIGHT_LENGTH) {
+            //std::cout << "sm == WEIGHT" << std::endl; 
+            if (index == static_cast<StateNonTerminal *>(states_[i])->weight_) {
+                //std::cout << "push_back: " << i << std::endl; 
                 set.push_back(i); 
-    }
-
-    if (set.empty()) {
-        std::cerr << "error in getting state indices" << std::endl;
+            }
+        } 
     }
 }
 

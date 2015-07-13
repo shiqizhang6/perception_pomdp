@@ -13,6 +13,9 @@
 
 typedef boost::multi_array<float, 3> Array3; 
 
+enum SensingModality { COLOR, CONTENT, WEIGHT, NONE, MODALITY_LENGTH }; 
+
+
 class State {
 public: 
 
@@ -47,7 +50,7 @@ public:
         weight_ = weight;  
 
         std::ostringstream stream; 
-        stream << color_ << "-" << content_ << "-" << weight_; 
+        stream << "s-" << color_ << "-" << content_ << "-" << weight_; 
 
         name_ = stream.str(); 
         is_terminal_ = false; 
@@ -76,7 +79,6 @@ public:
     }
 }; 
 
-enum SensingModality { COLOR, CONTENT, WEIGHT, NONE, MODALITY_LENGTH }; 
 
 class Action{
 public:
@@ -103,45 +105,47 @@ public:
     StateNonTerminal state_non_terminal_;
 
     ActionTerminating(StateNonTerminal state_non_terminal) 
-        : state_non_terminal_(state_non_terminal) {}
+        : state_non_terminal_(state_non_terminal) {
+        
+        std::ostringstream oss; 
+        oss << "a-" 
+            << state_non_terminal_.color_ << "-" 
+            << state_non_terminal_.content_ << "-"
+            << state_non_terminal_.weight_; 
+        name_ = oss.str(); 
+        is_terminating_ = true; 
+    }
 }; 
 
 class Observation {
 public: 
     SensingModality sensing_modality_; 
+    std::string name_; 
 };
 
 class ObservationColor : public Observation {
 public:
     Color color_;
-
-    ObservationColor(Color color) : color_(color) {
-        sensing_modality_ = COLOR; 
-    }
+    ObservationColor(Color color); 
 }; 
 
 class ObservationContent : public Observation {
 public:
     Content content_; 
-
-    ObservationContent(Content content) : content_(content) {
-        sensing_modality_ = CONTENT; 
-    }
+    ObservationContent(Content content); 
 }; 
 
 class ObservationWeight : public Observation {
 public:
     Weight weight_; 
-
-    ObservationWeight(Weight weight) : weight_(weight) {
-        sensing_modality_ = WEIGHT; 
-    }
+    ObservationWeight(Weight weight); 
 }; 
 
 class ObservationNone : public Observation {
 public:
     ObservationNone() {
         sensing_modality_ = NONE; 
+        name_ = "none"; 
     }
 }; 
 
@@ -160,7 +164,7 @@ public:
 
     void writeModelToFile(const std::string ); 
 
-    void getStateIndices(SensingModality, int, std::vector<int>); 
+    void getStateIndices(SensingModality, int, std::vector<int> &); 
     int getTerminalStateIndex(); 
     int getNonTerminalStateIndex(Color, Content, Weight, bool);
     int getActionIndex(std::string); 
