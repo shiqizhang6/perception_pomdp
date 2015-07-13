@@ -1,0 +1,11 @@
+
+#ifndef UTILITIES_H
+#define UTILITIES_H
+
+#define GRASP_SUCCESS_RATE (0.8)
+#define DROP_SUCCESS_RATE (0.8)
+#define SUCCESS_REWARD (100.0)
+#define FAILURE_PENALTY (-100.0)
+#define DISCOUNT_FACTOR (0.95)
+
+#endif 

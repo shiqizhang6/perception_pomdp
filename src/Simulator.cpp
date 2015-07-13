@@ -16,54 +16,94 @@ std::ostream& operator<< (std::ostream& s, const SensingModality& sm) {
 }
 
 std::ostream& operator<< (std::ostream& s, const ObservationColor& o) {
-    s << o; 
-    return s; 
+    s << o;     return s; 
 }
 std::ostream& operator<< (std::ostream& s, const ObservationContent& o) {
-    s << o; 
-    return s; 
+    s << o;     return s; 
 }
 std::ostream& operator<< (std::ostream& s, const ObservationWeight& o) {
-    s << o; 
-    return s; 
+    s << o;     return s; 
 }
 
 Simulator::Simulator() {
 
-    int index;
-
     // initialize state set
-    index = 0; 
-    for (int h=0; h <= 1; h++) {
-        for (int i=0; i < COLOR_LENGTH; i++) {
-            for (int j=0; j < CONTENT_LENGTH; j++) {
-                for (int k=0; k < WEIGHT_LENGTH; k++) {
-                    states_.push_back(new StateNonTerminal(index++, 
-                        static_cast<Color>(i), static_cast<Content>(j), 
-                        static_cast<Weigth>(k), h));
-                }
-            }
-        }
-    }
-    states_.push_back(new StateTerminal(index)); 
+    for (int i=0; i < COLOR_LENGTH; i++)
+        for (int j=0; j < CONTENT_LENGTH; j++)
+            for (int k=0; k < WEIGHT_LENGTH; k++)
+                states_.push_back(new StateNonTerminalNotInHand(static_cast<Color>(i), 
+                    static_cast<Content>(j), static_cast<Weight>(k)));
+
+    for (int i=0; i < COLOR_LENGTH; i++)
+        for (int j=0; j < CONTENT_LENGTH; j++)
+            for (int k=0; k < WEIGHT_LENGTH; k++)
+                states_.push_back(new StateNonTerminalInHand(static_cast<Color>(i), 
+                    static_cast<Content>(j), static_cast<Weight>(k)));
+
+    states_.push_back(new StateTerminal()); 
 
     // initialize action set
-    for (int i=0; i < ACTION_LENGTH; i++) {
-        actions.push_back(static_cast<Action>(i));
+    actions_.push_back(new ActionNonTerminating(CONTENT, "drop", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(NONE, "grasp", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(WEIGHT, "lift", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(COLOR, "look", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(WEIGHT, "poke", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(WEIGHT, "push", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(CONTENT, "shake", 0.0)); 
+    actions_.push_back(new ActionNonTerminating(WEIGHT, "tap", 0.0)); 
+
+    for (int i=0; i < COLOR_LENGTH; i++) {
+        for (int j=0; j < CONTENT_LENGTH; j++) {
+            for (int k=0; k < WEIGHT_LENGTH; k++) {
+                actions_.push_back(new ActionTerminating(
+                    StateNonTerminal(static_cast<Color>(i), 
+                                     static_cast<Content>(j), 
+                                     static_cast<Weight>(k)))); 
+
+            }   
+        }   
     }
 
     // initialize observation set
-    index = 0; 
     for (int i=0; i < COLOR_LENGTH; i++) {
-        observations.push_back(new ObservationColor(index++, static_cast<Color>(i)));
+        observations_.push_back(new ObservationColor(static_cast<Color>(i)));
     }
     for (int i=0; i < CONTENT_LENGTH; i++) {
-        observations.push_back(new ObservationContent(index++, static_cast<Content>(i)));
+        observations_.push_back(new ObservationContent(static_cast<Content>(i)));
     }
     for (int i=0; i < WEIGHT_LENGTH; i++) {
-        observations.push_back(new ObservationWeight(index++, static_cast<Weight>(i)));
+        observations_.push_back(new ObservationWeight(static_cast<Weight>(i)));
     }
 
+    std::string laptop_path, desktop_path, laptop_obs_path, desktop_obs_path, laptop_reward_path, desktop_reward_path; 
+
+    laptop_path = ("/home/szhang/projects/2015_perception_pomdp/models/"); 
+    desktop_path = ("/home/shiqi/projects/2015_perception_pomdp/models/"); 
+
+    laptop_obs_path = laptop_path + "observation_model/"; 
+    desktop_obs_path = desktop_path + "observation_model/"; 
+    laptop_reward_path = laptop_path + "action_costs.txt"; 
+    desktop_reward_path = desktop_path + "action_costs.txt"; 
+
+    // load transition model
+    loadTraModel(); 
+
+    // load observation model
+    if (boost::filesystem::exists(laptop_obs_path))
+        loadObsModel(laptop_obs_path); 
+    else if (boost::filesystem::exists(desktop_obs_path))
+        loadObsModel(desktop_obs_path); 
+    else
+        std::cerr << "path (observation model) invalid" << std::endl; 
+
+    // load reward model
+    if (boost::filesystem::exists(laptop_reward_path))
+        loadRewModel(laptop_reward_path); 
+    else if (boost::filesystem::exists(desktop_reward_path))
+        loadRewModel(desktop_reward_path); 
+    else
+        std::cerr << "path (reward model) invalid"  << std::endl; 
+    
 }
 
 void Simulator::initBelief(boost::numeric::ublas::vector<float> &belief) {
@@ -96,9 +136,9 @@ void Simulator::selectAction(const boost::numeric::ublas::vector<float> &b,
         pos = (vec[i] > argmax) ? i : pos;
         argmax = (vec[i] > argmax) ? vec[i] : argmax; 
     }
-    if (pos == -1)
-        std::cout << "Error in action selection" << std::endl;
-    else
-        action.index = parser.action_vector[pos]; 
+    // if (pos == -1)
+        std::cerr << "Error in action selection" << std::endl;
+    // else
+    //     action.index_ = parser.action_vector[pos]; 
 }
 

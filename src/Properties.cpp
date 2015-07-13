@@ -1,5 +1,6 @@
 
 #include "Properties.h"
+#include <iostream>
 
 std::ostream& operator<<(std::ostream& stream, const Color& color) {
     if (color == RED) {
@@ -34,7 +35,7 @@ std::ostream& operator<<(std::ostream& stream, const Weight& weight) {
         stream << "heavy";
     } else if (weight == MEDIUM) {
         stream << "medium";
-    } else if (wegiht == LIGHT) {
+    } else if (weight == LIGHT) {
         stream << "light";
     } else {
         stream << "unknown";
