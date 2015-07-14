@@ -65,7 +65,7 @@ void Simulator::loadTraModel() {
                             and pt1->weight_ == pt2->weight_) {
 
                             tra_model_[a][c][n] = static_cast<StateNonTerminal*> (states_[k])->in_hand_ 
-                                ? DROP_SUCCESS_RATE : 1.0 - DROP_SUCCESS_RATE; 
+                                ? 1.0 - DROP_SUCCESS_RATE : DROP_SUCCESS_RATE; 
                         }
                     }
                 }
@@ -87,22 +87,23 @@ void Simulator::loadObsModel(const std::string path) {
     state_num = states_.size(); 
     observation_num = observations_.size(); 
 
-    // note that boost::reshape won't work coz the # of elements grow
+    // note that boost::reshape won't work here coz the # of elements grows from (0,0,0)
     Array3::extent_gen extents;
     obs_model_.resize(extents[action_num][state_num][observation_num]);
 
     // initialize with all zeros
-    for (Array3::index a=0; a != action_num; a++) {
+    Array3::index a;
+    for (a=0; a != action_num; a++) {
 
-        for (Array3::index c=0; c != state_num; c++) {
-            for (Array3::index n=0; n != observation_num; n++) {
-                if (true == actions_[a]->is_terminating_ and 
-                    observations_[n]->sensing_modality_ == NONE) {
-
+        Array3::index c; 
+        for (c=0; c != state_num; c++) {
+        
+            Array3::index n; 
+            for (n=0; n != observation_num; n++) {
+                if ( (actions_[a]->is_terminating_ or states_[c]->is_terminal_) and observations_[n]->sensing_modality_ == NONE)
                     obs_model_[a][c][n] = 1.0; 
-                } else {
+                else
                     obs_model_[a][c][n] = 0.0; 
-                }
             }
         }
     }
@@ -110,29 +111,24 @@ void Simulator::loadObsModel(const std::string path) {
     boost::filesystem::path bpath(path); 
     boost::filesystem::directory_iterator it(bpath), end_it; 
 
+    // for each file such as "look_color.txt"
     for ( ; it != end_it; it++) {
 
         std::string filename = it->path().filename().string(); 
 
-        // assuming file has been renamed, e.g., "grasp_color.txt"
-        std::cout << "\tfile name: " << filename << " " << std::endl; ; 
+        // assuming file has been renamed in a way such as "look_color.txt"
+        std::cout << "\tfile name: " << filename << " " << std::endl;
 
         std::string file = path + filename; 
         std::string action_name = filename.substr(0, filename.find("_")); 
-        std::string property_name = filename.substr(
-            filename.find("_") + 1, filename.find(".") - filename.find("_"));        
-
-        // std::cout << "\tworking on " << file << " with action " << action_name 
-        //           << ", property " << property_name << std::endl; 
+        std::string property_name = filename.substr(filename.find("_") + 1, filename.find(".") - filename.find("_"));        
 
         Array3::index action_index = getActionIndex(action_name); 
 
         SensingModality sensing_modality; 
         std::ifstream infile; 
         infile.open(file.c_str()); 
-        std::vector<std::vector<float> > mat; 
 
-        int a_index, s_index, o_index; 
         int modality_length; 
 
         if (property_name.find("color") != std::string::npos) {
@@ -148,10 +144,12 @@ void Simulator::loadObsModel(const std::string path) {
             std::cerr << "error in specify sensing modality" << std::endl; 
         }
 
+        std::vector<int> state_indices; 
+
         for (int i = 0; i < modality_length; i++) { // read the i'th row
             for (int j = 0; j < modality_length; j++) { // read the j'th colomn
                 
-                std::vector<int> state_indices; 
+                state_indices.clear(); 
                 getStateIndices(sensing_modality, i, state_indices); 
                 int observation_index = getObservationIndex(sensing_modality, j); 
 
@@ -160,12 +158,21 @@ void Simulator::loadObsModel(const std::string path) {
                 infile >> tmp; 
                 probability = boost::lexical_cast<float>(tmp); 
 
-                for (int i=0; i<state_indices.size(); i++) {
-                    obs_model_[action_index][state_indices[i]][observation_index] = probability; 
+                // terminal state does not apply
+                for (int k=0; k<state_indices.size(); k++) {
+                    obs_model_[action_index][state_indices[k]][observation_index] = probability; 
                 }
             }
         }
         infile.close(); 
+    }
+
+    // action grasp senses nothing
+    Array3::index action_grasp_index = getActionIndex("grasp");
+    int observation_index = getObservationIndex(NONE, 0); 
+
+    for (int i=0; i<state_num-1; i++) {
+        obs_model_[action_grasp_index][i][observation_index] = 1.0; 
     }
 }
 
@@ -245,7 +252,7 @@ void Simulator::getStateIndices(SensingModality sm, int index, std::vector<int> 
     
     set.clear(); 
 
-    for (int i=0; i<states_.size(); i++) {
+    for (int i=0; i<states_.size() - 1; i++) {
 
         if (sm == COLOR and index < COLOR_LENGTH) {
             //std::cout << "sm == COLOR" << std::endl; 
