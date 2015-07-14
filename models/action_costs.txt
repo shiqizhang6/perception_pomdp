@@ -1,0 +1,8 @@
+grasp 4.5
+lift 2.6
+look 0.5
+drop 2.6
+poke 4.1
+push 4.5
+shake 3.8
+tap 4.2
