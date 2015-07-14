@@ -6,8 +6,9 @@
 #include <boost/numeric/ublas/matrix.hpp> 
 #include <boost/numeric/ublas/io.hpp> // for std::cout << matrix<..>
 #include <boost/multi_array.hpp> // for high dimensional arrays
+#include <boost/lexical_cast.hpp>
 #include <vector>
-#include "Parser.h"
+#include "PolicyInterpreter.h"
 #include "Properties.h"
 #include "utilities.h"
 
@@ -171,7 +172,6 @@ public:
     int getObservationIndex(SensingModality, int); 
 
     void initBelief(boost::numeric::ublas::vector<float> &);
-    void selectAction(const boost::numeric::ublas::vector<float> &, Action &, const Parser &); 
     void updateBelief(boost::numeric::ublas::vector<float> &);
     void makeObservation(const State &, Observation &); 
 

@@ -69,6 +69,6 @@ void Simulator::writeModelToFile(std::string file) {
     outfile.open(file.c_str()); 
     outfile << str; 
     outfile.close(); 
-    std::cout << "finished" << std::endl; 
+    std::cout << "done" << std::endl; 
 }
 

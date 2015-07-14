@@ -115,11 +115,8 @@ Simulator::Simulator() {
     for (int i=0; i < COLOR_LENGTH; i++) {
         for (int j=0; j < CONTENT_LENGTH; j++) {
             for (int k=0; k < WEIGHT_LENGTH; k++) {
-                actions_.push_back(new ActionTerminating(
-                    StateNonTerminal(static_cast<Color>(i), 
-                                     static_cast<Content>(j), 
-                                     static_cast<Weight>(k)))); 
-
+                actions_.push_back(new ActionTerminating(StateNonTerminal(
+                    static_cast<Color>(i), static_cast<Content>(j), static_cast<Weight>(k)))); 
             }   
         }   
     }
@@ -193,21 +190,4 @@ void Simulator::initBelief(boost::numeric::ublas::vector<float> &belief) {
     }
 }
 
-
-void Simulator::selectAction(const boost::numeric::ublas::vector<float> &b, 
-    Action &action, const Parser &parser) {
-
-    boost::numeric::ublas::vector<float> vec;
-    vec = boost::numeric::ublas::prod(parser.policy_matrix, b);
-
-    int argmax = INT_MIN, pos=-1; 
-    for (int i=0; i<vec.size(); i++) {
-        pos = (vec[i] > argmax) ? i : pos;
-        argmax = (vec[i] > argmax) ? vec[i] : argmax; 
-    }
-    // if (pos == -1)
-        std::cerr << "Error in action selection" << std::endl;
-    // else
-    //     action.index_ = parser.action_vector[pos]; 
-}
 

@@ -222,9 +222,9 @@ void Simulator::loadRewModel(const std::string file) {
                 a_content = static_cast<ActionTerminating *> (actions_[i])->state_non_terminal_.content_;
                 a_weight = static_cast<ActionTerminating *> (actions_[i])->state_non_terminal_.weight_;
 
-                if (a_color == static_cast<StateNonTerminal *>(states_[j])->color_ 
-                        and a_content == static_cast<StateNonTerminal *>(states_[j])->content_ 
-                        and a_weight == static_cast<StateNonTerminal *>(states_[j])->weight_) {
+                if (a_color == static_cast<StateNonTerminal *>(states_[j])->color_ and 
+                    a_content == static_cast<StateNonTerminal *>(states_[j])->content_ and 
+                    a_weight == static_cast<StateNonTerminal *>(states_[j])->weight_) {
 
                     rew_model_(i, j) = SUCCESS_REWARD; 
 
@@ -236,7 +236,7 @@ void Simulator::loadRewModel(const std::string file) {
 
             } else if (cost_map.find(actions_[i]->name_) != cost_map.end()) {
                 
-                rew_model_(i, j) = cost_map[actions_[i]->name_]; 
+                rew_model_(i, j) = (-1.0) * cost_map[actions_[i]->name_]; 
                 
             } else {
 
