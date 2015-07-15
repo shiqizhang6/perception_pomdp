@@ -18,7 +18,7 @@ public:
     void updateState(State *); 
     void updateReward(float reward, float acc_reward); 
 
-    // TODO
+    const PomdpModel * model_; 
 }; 
 
 #endif
