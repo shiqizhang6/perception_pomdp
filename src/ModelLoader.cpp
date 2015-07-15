@@ -2,11 +2,11 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <map>
-#include "Simulator.h"
+#include "PomdpModel.h"
 
 /*  assuming states_, actions_, observations_ have been initialized
     assuming there are actions named "grasp" and "drop"     */
-void Simulator::loadTraModel() {
+void PomdpModel::loadTraModel() {
 
     int action_num, state_num; 
 
@@ -76,7 +76,7 @@ void Simulator::loadTraModel() {
 }
 
 // assuming observation probabilities separated by spaces
-void Simulator::loadObsModel(const std::string path) {
+void PomdpModel::loadObsModel(const std::string path) {
 
     if (false == boost::filesystem::is_directory(path))
         std::cerr << "path does not exist: " << path << std::endl; 
@@ -176,7 +176,7 @@ void Simulator::loadObsModel(const std::string path) {
     }
 }
 
-void Simulator::loadRewModel(const std::string file) {
+void PomdpModel::loadRewModel(const std::string file) {
 
     if (boost::filesystem::exists(file))
         std::cout << "reading action-cost file: " << file << std::endl; 
@@ -248,7 +248,7 @@ void Simulator::loadRewModel(const std::string file) {
     infile.close(); 
 }
 
-void Simulator::getStateIndices(SensingModality sm, int index, std::vector<int> &set) {
+void PomdpModel::getStateIndices(SensingModality sm, int index, std::vector<int> &set) {
     
     set.clear(); 
 
@@ -277,18 +277,18 @@ void Simulator::getStateIndices(SensingModality sm, int index, std::vector<int> 
     }
 }
 
-int Simulator::getTerminalStateIndex() {
+int PomdpModel::getTerminalStateIndex() {
     return COLOR_LENGTH * CONTENT_LENGTH * WEIGHT_LENGTH; 
 }
 
-int Simulator::getNonTerminalStateIndex(Color color, Content content, Weight weight, bool inhand) {
+int PomdpModel::getNonTerminalStateIndex(Color color, Content content, Weight weight, bool inhand) {
     return weight 
         + (content * WEIGHT_LENGTH) 
         + (color * CONTENT_LENGTH * WEIGHT_LENGTH) 
         + (inhand * COLOR_LENGTH * CONTENT_LENGTH * WEIGHT_LENGTH); 
 }
 
-int Simulator::getActionIndex(std::string action_name) {
+int PomdpModel::getActionIndex(std::string action_name) {
     for (int i=0; i<actions_.size(); i++) {
         if (actions_[i]->name_.find(action_name) != std::string::npos)
             return i;
@@ -297,7 +297,7 @@ int Simulator::getActionIndex(std::string action_name) {
     return -1; 
 }
 
-int Simulator::getObservationIndex(SensingModality sm, int i) {
+int PomdpModel::getObservationIndex(SensingModality sm, int i) {
     if (sm == COLOR and i < COLOR_LENGTH)
         return i; 
     else if (sm == CONTENT and i < CONTENT_LENGTH)

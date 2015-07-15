@@ -4,16 +4,18 @@
 #include <fstream>
 #include <string>
 
-#include "Simulator.h"
+#include "PomdpModel.h"
 
-void Simulator::writeModelToFile(std::string file) {
+void PomdpModel::writeModelToFile(std::string file) {
     
+    std::cout << "working on generating pomdp model file" << std::endl; 
+
     if (boost::filesystem::exists(file)) {
-        std::cout << file << " exists, moved to " << file + ".old" << std::endl; 
+        std::cout << "\t" << file << " exists, moved to " << file + ".old" << std::endl; 
         boost::filesystem::rename(file, file + ".old"); 
     } 
 
-    std::cout << "writing to: " << file << std::endl; 
+    std::cout << "\twriting to: " << file << std::endl; 
     std::string str; 
 
     float discount_factor = DISCOUNT_FACTOR; 
@@ -69,6 +71,6 @@ void Simulator::writeModelToFile(std::string file) {
     outfile.open(file.c_str()); 
     outfile << str; 
     outfile.close(); 
-    std::cout << "done" << std::endl; 
+    std::cout << "\tdone" << std::endl; 
 }
 

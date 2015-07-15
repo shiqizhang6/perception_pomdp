@@ -1,6 +1,6 @@
 CFLAGS=-I.
-DEPS= PolicyInterpreter.h Simulator.h Properties.h utilities.h
-OBJ= test.o PolicyInterpreter.o Simulator.o ModelWriter.o ModelLoader.o
+DEPS= PolicyInterpreter.h PomdpModel.h Properties.h utilities.h Simulator.h
+OBJ= test.o PolicyInterpreter.o PomdpModel.o ModelWriter.o ModelLoader.o Simulator.o
 LIBS=-lboost_filesystem -lboost_system # the second is needed coz it's a 64 OS
 
 %.o: %.cpp $(DEPS)

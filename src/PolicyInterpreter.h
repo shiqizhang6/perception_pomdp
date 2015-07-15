@@ -17,7 +17,7 @@ public:
     boost::numeric::ublas::vector<int> actions_; 
 
     void parsePolicy(); 
-    void selectAction(boost::numeric::ublas::vector<float> , int ); 
+    void selectAction(const boost::numeric::ublas::vector<float> , int &); 
 
 }; 
 
