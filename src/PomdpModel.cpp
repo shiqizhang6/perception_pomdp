@@ -81,8 +81,6 @@ ObservationWeight::ObservationWeight(Weight weight) : weight_(weight) {
     name_ = oss.str(); 
 }
 
-
-
 PomdpModel::PomdpModel() {
 
     std::cout << "creating templates for states, action and observations" << std::endl; 

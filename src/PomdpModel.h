@@ -80,7 +80,6 @@ public:
     }
 }; 
 
-
 class Action{
 public:
     std::string name_; 
