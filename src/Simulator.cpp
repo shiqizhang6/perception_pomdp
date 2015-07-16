@@ -21,6 +21,7 @@ boost::numeric::ublas::vector<float> Simulator::initBelief() {
     for (int i=0; i < state_num; i++) {
         belief[i] = (model_->states_[i]->is_terminal_) ? (0.0) : (1.0 / (state_num - 1)); 
     }
+    return belief; 
 }
 
 void Simulator::updateState(const int action_index, int & state_index) {
@@ -31,7 +32,7 @@ void Simulator::updateState(const int action_index, int & state_index) {
 
     for (int i=0; i<model_->states_.size(); i++) {
         acc += model_->tra_model_[action_index][state_index][i]; 
-        if (r >= acc) {
+        if (acc >= r) {
             state_index = i; 
             state_updated = true; 
             return; 
@@ -50,7 +51,7 @@ void Simulator::makeObservation(const int state_index, const int action_index, i
 
     for (int i=0; i<model_->obs_model_.shape()[2]; i++) {
         acc += model_->obs_model_[action_index][state_index][i]; 
-        if (r >= acc) {
+        if (acc >= r) {
             observation_index = i; 
             return; 
         }
@@ -58,10 +59,12 @@ void Simulator::makeObservation(const int state_index, const int action_index, i
     std::cerr << "\terror in making observation" << std::endl; 
 }
 
+
+// TODO TODO TODO
 void Simulator::updateBelief(const int action_index, const int observation_index, 
         boost::numeric::ublas::vector<float> & belief) {
 
-    boost::numeric::ublas::vector<float> new_belief(belief); 
+    boost::numeric::ublas::vector<float> new_belief(belief.size()); 
     int state_num = model_->states_.size(); 
     float acc = 0; 
 
@@ -70,10 +73,12 @@ void Simulator::updateBelief(const int action_index, const int observation_index
         for (int j=0; j<state_num; j++) {
             tmp += model_->tra_model_[action_index][j][i]; 
         }
-        new_belief[i] = model_->obs_model_[action_index][i][observation_index] * tmp; 
-        acc += new_belief[i]; 
+        new_belief(i) = model_->obs_model_[action_index][i][observation_index] * tmp; 
+        acc += new_belief(i); 
     }
-    belief = new_belief / acc; 
+
+    for (int i=0; i<state_num; i++)
+        belief(i) = new_belief(i) / acc; 
 }
 
 void Simulator::updateReward(const int action_index, const int state_index, 

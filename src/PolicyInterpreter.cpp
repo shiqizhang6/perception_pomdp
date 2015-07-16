@@ -1,5 +1,6 @@
 
 #include "PolicyInterpreter.h"
+#include "utilities.h"
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/numeric/ublas/io.hpp>
@@ -59,7 +60,7 @@ void PolicyInterpreter::parsePolicy() {
         if (str.find("numVectors=\"") != std::string::npos) break; 
     }
 
-    std::cout << "str: " << str << std::endl; 
+    // std::cout << "str: " << str << std::endl; 
 
     for (int i=0; i<policy_mat_.size1(); i++) {
         infile >> str; 
@@ -83,6 +84,12 @@ void PolicyInterpreter::selectAction(const boost::numeric::ublas::vector<float> 
     boost::numeric::ublas::vector<float> weights;
     weights = boost::numeric::ublas::prod(belief, boost::numeric::ublas::trans(policy_mat_)); 
 
+    float tmp_sum = 0; 
+    for (unsigned i=0; i<belief.size(); i++)
+        tmp_sum += belief[i]; 
+    if (tmp_sum > 1.0 + TINY_DELTA or tmp_sum < 1.0 - TINY_DELTA)
+        std::cerr << "error: belief does not sum to one: " << tmp_sum << std::endl; 
+
     double max_value = -1.0; 
     int max_index = -1; 
     for (unsigned i=0; i<weights.size(); i++) {
@@ -93,4 +100,6 @@ void PolicyInterpreter::selectAction(const boost::numeric::ublas::vector<float> 
     if (-1 == max_index) {
         std::cerr << "\terror in action selection" << std::endl; 
     }
+    action = actions_(max_index); 
 }
+

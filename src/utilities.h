@@ -7,5 +7,6 @@
 #define SUCCESS_REWARD (100.0)
 #define FAILURE_PENALTY (-100.0)
 #define DISCOUNT_FACTOR (0.95)
+#define TINY_DELTA (0.000001)
 
 #endif 

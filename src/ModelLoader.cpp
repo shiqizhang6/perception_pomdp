@@ -111,6 +111,8 @@ void PomdpModel::loadObsModel(const std::string path) {
     boost::filesystem::path bpath(path); 
     boost::filesystem::directory_iterator it(bpath), end_it; 
 
+    std::vector<int> state_indices; 
+
     // for each file such as "look_color.txt"
     for ( ; it != end_it; it++) {
 
@@ -144,8 +146,6 @@ void PomdpModel::loadObsModel(const std::string path) {
             std::cerr << "error in specify sensing modality" << std::endl; 
         }
 
-        std::vector<int> state_indices; 
-
         for (int i = 0; i < modality_length; i++) { // read the i'th row
             for (int j = 0; j < modality_length; j++) { // read the j'th colomn
                 
@@ -173,6 +173,47 @@ void PomdpModel::loadObsModel(const std::string path) {
 
     for (int i=0; i<state_num-1; i++) {
         obs_model_[action_grasp_index][i][observation_index] = 1.0; 
+    }
+
+    // actions drop, shake and lift sense nothing, when object is not in hand
+    for (Array3::index a=0; a != action_num; a++) {
+
+        if (actions_[a]->name_.find("drop") != std::string::npos
+                or actions_[a]->name_.find("shake") != std::string::npos
+                or actions_[a]->name_.find("lift") != std::string::npos) {
+
+            for (Array3::index c=0; c != state_num; c++) {
+                
+                if (states_[c]->is_terminal_)
+                    continue; 
+                
+                if (false == (static_cast<StateNonTerminal *> (states_[c]))->in_hand_ ) {
+
+                    for (Array3::index n=0; n != observation_num; n++)
+                        obs_model_[a][c][n] = (observations_[n]->sensing_modality_ == NONE) ? 1.0 : 0.0; 
+                }
+            }
+        }
+    }
+
+    // actions poke, push and tap sense nothing, when object is in hand
+    for (Array3::index a=0; a != action_num; a++) {
+
+        if (actions_[a]->name_.find("poke") != std::string::npos
+                or actions_[a]->name_.find("push") != std::string::npos
+                or actions_[a]->name_.find("tap") != std::string::npos) {
+
+            for (Array3::index c=0; c != state_num; c++) {
+                
+                if (states_[c]->is_terminal_)
+                    continue; 
+
+                if (true == (static_cast<StateNonTerminal *> (states_[c]))->in_hand_ ) { 
+                    for (Array3::index n=0; n != observation_num; n++)
+                        obs_model_[a][c][n] = (observations_[n]->sensing_modality_ == NONE) ? 1.0 : 0.0; 
+                }
+            }
+        }
     }
 }
 
