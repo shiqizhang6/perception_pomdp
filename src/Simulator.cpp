@@ -60,7 +60,6 @@ void Simulator::makeObservation(const int state_index, const int action_index, i
 }
 
 
-// TODO TODO TODO
 void Simulator::updateBelief(const int action_index, const int observation_index, 
         boost::numeric::ublas::vector<float> & belief) {
 
@@ -71,7 +70,7 @@ void Simulator::updateBelief(const int action_index, const int observation_index
     for (int i=0; i<state_num; i++) {
         float tmp = 0; 
         for (int j=0; j<state_num; j++) {
-            tmp += model_->tra_model_[action_index][j][i]; 
+            tmp += model_->tra_model_[action_index][j][i] * belief(j); 
         }
         new_belief(i) = model_->obs_model_[action_index][i][observation_index] * tmp; 
         acc += new_belief(i); 
