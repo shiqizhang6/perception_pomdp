@@ -90,7 +90,7 @@ void PolicyInterpreter::selectAction(const boost::numeric::ublas::vector<float> 
     if (tmp_sum > 1.0 + TINY_DELTA or tmp_sum < 1.0 - TINY_DELTA)
         std::cerr << "error: belief does not sum to one: " << tmp_sum << std::endl; 
 
-    double max_value = -1.0; 
+    double max_value = -1000.0; 
     int max_index = -1; 
     for (unsigned i=0; i<weights.size(); i++) {
         max_index = (weights(i) > max_value) ? i : max_index; 
