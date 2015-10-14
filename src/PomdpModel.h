@@ -8,7 +8,9 @@
 #include <boost/multi_array.hpp> // for high dimensional arrays
 #include <boost/lexical_cast.hpp>
 #include <vector>
+#include <set>
 #include "PolicyInterpreter.h"
+#include "FeatureSelector.h"
 #include "Properties.h"
 #include "utilities.h"
 

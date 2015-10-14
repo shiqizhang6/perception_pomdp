@@ -137,8 +137,8 @@ PomdpModel::PomdpModel() {
     laptop_path = ("/home/szhang/projects/2015_perception_pomdp/models/"); 
     desktop_path = ("/home/shiqi/projects/2015_perception_pomdp/models/"); 
 
-    laptop_obs_path = laptop_path + "observation_model/"; 
-    desktop_obs_path = desktop_path + "observation_model/"; 
+    laptop_obs_path = laptop_path + "train10/"; 
+    desktop_obs_path = desktop_path + "train10/"; 
     laptop_reward_path = laptop_path + "action_costs.txt"; 
     desktop_reward_path = desktop_path + "action_costs.txt"; 
 

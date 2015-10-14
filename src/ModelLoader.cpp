@@ -100,7 +100,9 @@ void PomdpModel::loadObsModel(const std::string path) {
         
             Array3::index n; 
             for (n=0; n != observation_num; n++) {
-                if ( (actions_[a]->is_terminating_ or states_[c]->is_terminal_) and observations_[n]->sensing_modality_ == NONE)
+                if ( (actions_[a]->is_terminating_ or states_[c]->is_terminal_) 
+                        and observations_[n]->sensing_modality_ == NONE)
+
                     obs_model_[a][c][n] = 1.0; 
                 else
                     obs_model_[a][c][n] = 0.0; 
@@ -113,6 +115,10 @@ void PomdpModel::loadObsModel(const std::string path) {
 
     std::vector<int> state_indices; 
 
+    // learn the mapping from an action to a property
+    FeatureSelector feature_selector(path); 
+    feature_selector.learnEffectiveProperties(); 
+
     // for each file such as "look_color.txt"
     for ( ; it != end_it; it++) {
 
@@ -122,8 +128,15 @@ void PomdpModel::loadObsModel(const std::string path) {
         std::cout << "\tfile name: " << filename << " " << std::endl;
 
         std::string file = path + filename; 
+
+        // get the names of action and property
         std::string action_name = filename.substr(0, filename.find("_")); 
-        std::string property_name = filename.substr(filename.find("_") + 1, filename.find(".") - filename.find("_"));        
+        std::string property_name = filename.substr(filename.find("_") + 1, 
+            filename.rfind("_") - filename.find("_") - 1);
+
+        std::string effective_property = feature_selector.getEffectiveProperty(action_name); 
+        if (effective_property.compare(property_name) != 0)
+            continue; 
 
         Array3::index action_index = getActionIndex(action_name); 
 
@@ -164,6 +177,7 @@ void PomdpModel::loadObsModel(const std::string path) {
                 }
             }
         }
+
         infile.close(); 
     }
 
