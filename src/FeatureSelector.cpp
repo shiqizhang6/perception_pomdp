@@ -34,8 +34,10 @@ void FeatureSelector::learnEffectiveProperties() {
 
     boost::filesystem::directory_iterator it(path_to_model_), end_it; 
 
-    // [action, property] --> quality value
+    // action --> quality value
     std::map<std::string, float> quality_of_action; 
+    // property --> quality value
+    std::map<std::string, float> quality_of_property; 
 
     for ( ; it != end_it; it++) {
         std::string file_name = it->path().filename().string(); 
@@ -74,14 +76,16 @@ void FeatureSelector::learnEffectiveProperties() {
         std::cout << "\taction_name: " << action_name << "\t quality: " << quality << std::endl; 
         std::cout << std::endl; 
 
-        if (quality_of_action.find(action_name) == quality_of_action.end()) {
+        if (quality_of_property.find(property_name) == quality_of_property.end()) {
+            quality_of_property[property_name] = quality; 
+        } 
+        else if (quality_of_action.find(action_name) == quality_of_action.end()) {
             quality_of_action[action_name] = quality; 
-            property_effective_[action_name] = property_name; 
         } 
         else if (quality < quality_of_action[action_name]) {
             quality_of_action[action_name] = quality; 
-            property_effective_[action_name] = property_name; 
         }
+        property_effective_[action_name] = property_name; 
         infile.close(); 
     }
      
