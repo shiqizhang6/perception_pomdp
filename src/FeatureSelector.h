@@ -36,6 +36,7 @@ private:
     // std::set<string> action_names_; 
     // std::set<string> property_names_; 
     std::map<std::string, std::string> property_effective_;
+    std::map<std::string, std::string> action_effective_;
 }; 
 
 #endif
