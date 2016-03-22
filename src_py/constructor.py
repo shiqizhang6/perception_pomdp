@@ -43,21 +43,20 @@ class Obs(object):
 
 class Model:
 
-    def __init__(self, discount, num_comp_states): 
+    def __init__(self, discount, prop_names): 
         self._discount = discount
-        self._num_comp_states = num_comp_states
+        self._num_comp_states = 7
+        self._prop_names = prop_names
 
-    def get_props(self):
-        self.prop_names = []
-        self.prop_probs = []
+        self.generate_state_set()
+        self.generate_action_set()
+        self.generate_observation_set()
+        self.generate_trans_fun()
+        self.load_confusion_matrix('../models/xval_predicate_behavior_confusion_matrices.csv')
+        self.generate_obs_fun()
+        self.generate_reward_fun()
 
-        #TODO: add code to extract name+value information from input
 
-        assert len(prop_probs) == 2
-        for i in range(len(prop_probs):
-            assert len(prop_names) == len(prop_probs[i])
-            assert prop_probs[i][0] + prop_probs[i][1] == 1.0
-    
     def generate_state_set(self):
 
         self._states = []
@@ -201,12 +200,113 @@ class Model:
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
 
+    
+    def load_confusion_matrix(self, path):
+        f = open(path, 'r')
+        lines = f.readlines()[1:]
+        self.dic = {}
+        for l in lines:
+            words = l.split(',')
+            if words[1] in self.dic:
+                self.dic[words[1]][words[0]] = [int(w)+1 for w in words[2:]]}
+            else:
+                self.dic[words[1]] = {words[0]: [int(w)+1 for w in words[2:]]}
+
+
     def generate_obs_fun(self):
 
         self._obs_fun = np.zeros((len(self._actions), len(self._states), len(self._observations)))
         for a_idx, a_val in enumerate(self._actions):
             for s_idx, s_val in enumerate(self._states):
                 self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+
+        for a_idx, a_val in enumerate(self._actions):
+            for s_idx, s_val in enumerate(self._states):
+                for o_idx, o_val in enumerate(self._observations):
+                    prob = 1.0
+                    for p_s_idx, p_s_val in enumerate(s_val._prop_values):
+                        p_o_val = o_val._prop_values[p_s_idx]
+                        mat = self.dic[a_val._name][self.prop_names[p_s_idx]]
+                        if p_s_val == '0' and p_o_val == '0':
+                            prob = prob * mat[3]/(mat[1] + mat[3])
+                        else if p_s_val == '0' and p_o_val == '1':
+                            prob = prob * mat[1]/(mat[1] + mat[3])
+                        else if p_s_val == '1' and p_o_val == '0':
+                            prob = prob * mat[2]/(mat[0] + mat[2])
+                        else if p_s_val == '1' and p_o_val == '1':
+                            prob = prob * mat[0]/(mat[0] + mat[2])
+                    self._obs_fun[a_idx, s_idx, o_idx] = prob
+
+    def generate_reward_fun(self):
+        self._reward_fun = np.zeros((len(self._actions), len(self._states))
+        for a_idx, a_val in enumerate(self._actions):
+            for s_idx, s_val in enumerate(self._states):
+                if a_val.term == False:
+                    self._reward_fun[a_idx, s_idx] = -2.0
+                else if s_val.term == True:
+                    self._reward_fun[a_idx, s_idx] = 0.0
+                else if a_val._prop_values == s_val._prop_values:
+                    self._reward_fun[a_idx, s_idx] = 100.0
+                else:
+                    self._reward_fun[a_idx, s_idx] = -100.0
+
+    def write_to_file(self, path):
+        
+        s = 'discount: ' + str(self._discount) + '\nvalues: reward\n'
+        s = 'states: '
+        for state in self._states:
+            s += state._name + ' '
+        s += '\n\n'
+        s = 'actions: '
+        for action in self._actions:
+            s += action._name + ' '
+        s += '\n\n'
+        s = 'observations: '
+        for observation in self._observations:
+            s += observation._name + ' '
+        s += '\n\n'
+
+        for a in range(len(self._actions)):
+            s += 'T: ' + a._name + '\n'
+            for s1 in range(len(self._states)):
+                for s2 in range(len(self._states)):
+                    s += str(self._trans[a, s1, s2]) + ' '
+                s += '\n'
+            s += '\n'
+
+        for a in range(len(self._actions)):
+            s += 'O: ' + a._name + '\n'
+            for s1 in range(len(self._states)):
+                for o in range(len(self._observations)):
+                    s += str(self._obs_fun[a, s1, o]) + ' '
+                s += '\n'
+            s += '\n'
+
+        for a in range(len(self._actions)):
+            for s1 in range(len(self._states)):
+                s += 'R: ' + a._name + ' : ' + s1._name + ' : * : * '
+                s += str(self._reward_fun[a, s1]) + '\n'
+
+        f = open(path, 'w')
+        f.write(s)
+
+def main(argv):
+    
+    model = Model(0.95, ['light', 'talk'])
+    model.write_to_file('model.POMDP')
+
+if __name__ == "__main__":
+    main(sys.argv)
+        
+
+
+
+
+
+
+
+
+
 
 
 
