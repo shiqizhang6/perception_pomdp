@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import numpy as np
+import sys
 
 class State(object):
 
@@ -10,7 +11,7 @@ class State(object):
         self._prop_values = prop_values
         self._name = self.prop_values_to_str()
 
-    def prop_values_to_str(self)
+    def prop_values_to_str(self): 
         if term is True:
             return 'terminal'
         else:
@@ -65,12 +66,12 @@ class Model:
         for i in range(self._num_comp_states):
             self.generate_state_set_helper(i, 0, [], depth)
 
-        self._states.append(State(True, None, None)
+        self._states.append(State(True, None, None))
 
     def generate_state_set_helper(self, s_index, curr_depth, path, depth):
         
         if len(path) == depth:
-            self._states.append(State(False, i, path)
+            self._states.append(State(False, i, path))
 
         self.generate_state_set_helper(s_index, curr_depth+1, path.append('0'), depth)
         self.generate_state_set_helper(s_index, curr_depth+1, path.append('1'), depth)
@@ -100,7 +101,7 @@ class Model:
 
     def generate_action_set_helper(self, curr_depth, path, depth):
         if len(path) == depth:
-            self._actions.append(Action(True, None, path)
+            self._actions.append(Action(True, None, path))
 
         self.generate_action_set_helper(curr_depth+1, path.append('0'), depth)
         self.generate_action_set_helper(curr_depth+1, path.append('1'), depth)
@@ -113,7 +114,7 @@ class Model:
 
     def generate_observation_set_helper(self, curr_depth, path, depth):
         if len(path) == depth:
-            self._observations.append(Obs(False, path)
+            self._observations.append(Obs(False, path))
 
         self.generate_observation_set_helper(curr_depth+1, path.append('0'), depth)
         self.generate_observation_set_helper(curr_depth+1, path.append('1'), depth)
@@ -130,10 +131,10 @@ class Model:
                         self._trans[a_idx, s_idx, tmp_s_idx] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'ask' or a_val._name == 'press':
+            elif a_val._name == 'ask' or a_val._name == 'press':
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'push':
+            elif a_val._name == 'push':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
@@ -142,7 +143,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'grasp':
+            elif a_val._name == 'grasp':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
@@ -151,7 +152,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'lift':
+            elif a_val._name == 'lift':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
@@ -160,7 +161,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'hold':
+            elif a_val._name == 'hold':
                 success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 3:
@@ -169,7 +170,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'lower':
+            elif a_val._name == 'lower':
                 success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
@@ -178,7 +179,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'drop':
+            elif a_val._name == 'drop':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 5:
@@ -187,7 +188,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._name == 'reinit':
+            elif a_val._name == 'reinit':
                 success_push = 1.0
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 6:
@@ -196,7 +197,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            else if a_val._term == True:
+            elif a_val._term == True:
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
 
@@ -208,7 +209,7 @@ class Model:
         for l in lines:
             words = l.split(',')
             if words[1] in self.dic:
-                self.dic[words[1]][words[0]] = [int(w)+1 for w in words[2:]]}
+                self.dic[words[1]][words[0]] = [int(w)+1 for w in words[2:]]
             else:
                 self.dic[words[1]] = {words[0]: [int(w)+1 for w in words[2:]]}
 
@@ -229,23 +230,23 @@ class Model:
                         mat = self.dic[a_val._name][self.prop_names[p_s_idx]]
                         if p_s_val == '0' and p_o_val == '0':
                             prob = prob * mat[3]/(mat[1] + mat[3])
-                        else if p_s_val == '0' and p_o_val == '1':
+                        elif p_s_val == '0' and p_o_val == '1':
                             prob = prob * mat[1]/(mat[1] + mat[3])
-                        else if p_s_val == '1' and p_o_val == '0':
+                        elif p_s_val == '1' and p_o_val == '0':
                             prob = prob * mat[2]/(mat[0] + mat[2])
-                        else if p_s_val == '1' and p_o_val == '1':
+                        elif p_s_val == '1' and p_o_val == '1':
                             prob = prob * mat[0]/(mat[0] + mat[2])
                     self._obs_fun[a_idx, s_idx, o_idx] = prob
 
     def generate_reward_fun(self):
-        self._reward_fun = np.zeros((len(self._actions), len(self._states))
+        self._reward_fun = np.zeros((len(self._actions), len(self._states)))
         for a_idx, a_val in enumerate(self._actions):
             for s_idx, s_val in enumerate(self._states):
                 if a_val.term == False:
                     self._reward_fun[a_idx, s_idx] = -2.0
-                else if s_val.term == True:
+                elif s_val.term == True:
                     self._reward_fun[a_idx, s_idx] = 0.0
-                else if a_val._prop_values == s_val._prop_values:
+                elif a_val._prop_values == s_val._prop_values:
                     self._reward_fun[a_idx, s_idx] = 100.0
                 else:
                     self._reward_fun[a_idx, s_idx] = -100.0
