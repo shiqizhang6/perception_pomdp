@@ -44,11 +44,12 @@ class Obs(object):
 
 class Model:
 
-    def __init__(self, discount, prop_names, high_acc): 
+    def __init__(self, discount, prop_names, high_acc, ask_cost): 
         self._discount = discount
         self._num_comp_states = 7
         self._prop_names = prop_names
         self._high = high_acc
+        self._ask_cost = ask_cost
 
         self.generate_state_set()
         self.generate_action_set()
@@ -90,7 +91,7 @@ class Model:
             return len(self._states) - 1
 
         else:
-            return s_index*pow(2, len(prop_values)) + int(''.join(prop_values), 2) - 1
+            return s_index*pow(2, len(prop_values)) + int(''.join(prop_values), 2)
 
     def generate_action_set(self):
 
@@ -161,7 +162,7 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
             elif a_val._name == 'grasp':
-                success_push = 0.9
+                success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
                         tmp_s_idx = self.get_state_index(False, 2, s_val._prop_values)
@@ -170,7 +171,7 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
             elif a_val._name == 'lift':
-                success_push = 0.9
+                success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
                         tmp_s_idx = self.get_state_index(False, 3, s_val._prop_values)
@@ -197,7 +198,7 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
             elif a_val._name == 'drop':
-                success_push = 0.9
+                success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 5:
                         tmp_s_idx = self.get_state_index(False, 6, s_val._prop_values)
@@ -233,9 +234,9 @@ class Model:
     def generate_obs_fun(self):
 
         self._obs_fun = np.zeros((len(self._actions), len(self._states), len(self._observations)))
-        for a_idx, a_val in enumerate(self._actions):
-            for s_idx, s_val in enumerate(self._states):
-                self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+        # for a_idx, a_val in enumerate(self._actions):
+        #     for s_idx, s_val in enumerate(self._states):
+        #         self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
 
         for a_idx, a_val in enumerate(self._actions):
             for s_idx, s_val in enumerate(self._states):
@@ -248,7 +249,7 @@ class Model:
 
                     prob = 1.0
                     if o_val._nonavail == True:
-                        self._obs_fun[a_idx, s_idx, o_idx] = prob
+                        # self._obs_fun[a_idx, s_idx, o_idx] = prob
                         continue 
 
                     if a_val._name == 'ask':
@@ -257,7 +258,36 @@ class Model:
                         else:
                             self._obs_fun[a_idx, s_idx, o_idx] = \
                             (1.0 - self._high)/(len(self._observations)-2.0)
-                        continue
+                        continue 
+
+                    if a_val._name == 'look' or a_val._name == 'press':
+                        if s_val._s_index != 1:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'push':
+                        if s_val._s_index != 6:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'grasp':
+                        if s_val._s_index != 2:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'lift':
+                        if s_val._s_index != 3:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'hold':
+                        if s_val._s_index != 4:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'lower':
+                        if s_val._s_index != 5:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'drop':
+                        if s_val._s_index != 6:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
 
                     for p_s_idx, p_s_val in enumerate(s_val._prop_values):
 
@@ -279,10 +309,12 @@ class Model:
         self._reward_fun = np.zeros((len(self._actions), len(self._states)))
         for a_idx, a_val in enumerate(self._actions):
             for s_idx, s_val in enumerate(self._states):
-                if a_val._term == False:
-                    self._reward_fun[a_idx, s_idx] = -2.0
-                elif s_val._term == True:
+                if s_val._term == True:
                     self._reward_fun[a_idx, s_idx] = 0.0
+                elif a_val._term == False and a_val._name == 'ask':
+                    self._reward_fun[a_idx, s_idx] = self._ask_cost
+                elif a_val._term == False:
+                    self._reward_fun[a_idx, s_idx] = -1.0
                 elif a_val._prop_values == s_val._prop_values:
                     self._reward_fun[a_idx, s_idx] = 100.0
                 else:
@@ -290,16 +322,16 @@ class Model:
 
     def write_to_file(self, path):
         
-        s = 'discount: ' + str(self._discount) + '\nvalues: reward\n'
-        s = 'states: '
+        s = 'discount: ' + str(self._discount) + '\nvalues: reward\n\n'
+        s += 'states: '
         for state in self._states:
             s += state._name + ' '
         s += '\n\n'
-        s = 'actions: '
+        s += 'actions: '
         for action in self._actions:
             s += action._name + ' '
         s += '\n\n'
-        s = 'observations: '
+        s += 'observations: '
         for observation in self._observations:
             s += observation._name + ' '
         s += '\n\n'
@@ -330,32 +362,12 @@ class Model:
 
 def main(argv):
     
-    model = Model(0.95, ['light', 'tall'], 0.9)
+    model = Model(0.99, ['red', 'can'], 0.9, -10.0)
     model.write_to_file('model.POMDP')
 
 if __name__ == "__main__":
     main(sys.argv)
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
