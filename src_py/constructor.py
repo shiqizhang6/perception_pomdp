@@ -153,6 +153,8 @@ class Model:
                     if s_val._term == False and s_val._s_index == 0:
                         tmp_s_idx = self.get_state_index(False, 1, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = 1.0
+                    elif s_val._term == False and s_val._s_index == 1:
+                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
             elif a_val._name == 'ask' or a_val._name == 'press':
@@ -210,6 +212,8 @@ class Model:
                         tmp_s_idx = self.get_state_index(False, 6, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                    elif s_val._term == False and s_val._s_index == 6:
+                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
             elif a_val._name == 'reinit':

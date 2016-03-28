@@ -89,7 +89,7 @@ class Simulator(object):
 def main(argv):
 
     print('initializing model and solver')
-    model = Model(0.99, ['prop2', 'prop1'], 0.9, -50.0)
+    model = Model(0.99, ['prop2', 'prop1'], 0.9, -80.0)
     solver = Solver()
 
     model_name = 'model.pomdp'
