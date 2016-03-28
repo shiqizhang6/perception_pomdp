@@ -45,12 +45,12 @@ class Policy(object):
       print('Error: belief does not sum to 1, diff: ', sum(b)[0] - 1.0)
       sys.exit()
 
-    return self.actions[np.argmax(np.dot(self.policy, b.T)), 0]
+    return int(self.actions[np.argmax(np.dot(self.policy, b.T)), 0])
     # return np.argmax(b) + 12
     # return np.random.randint(24, size=1)[0]
 
 
-class Solver(object)
+class Solver(object):
 
     def __init__(self):
         pass

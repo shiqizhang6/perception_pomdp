@@ -308,7 +308,7 @@ class Model:
                             prob = prob * mat[0]/(mat[0] + mat[2])
 
                     self._obs_fun[a_idx, s_idx, o_idx] = prob
-                    print('prob: ' + str(prob))
+                    # print('prob: ' + str(prob))
 
     def generate_reward_fun(self):
 
@@ -367,7 +367,7 @@ class Model:
 
 def main(argv):
     
-    model = Model(0.99, ['red', 'can'], 0.9, -10.0)
+    model = Model(0.99, ['prop1', 'prop3'], 0.9, -90.0)
     model.write_to_file('model.POMDP')
 
 if __name__ == "__main__":
