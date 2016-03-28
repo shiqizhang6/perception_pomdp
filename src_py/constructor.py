@@ -51,9 +51,18 @@ class Model:
         self._high = high_acc
         self._ask_cost = ask_cost
 
+        self._states = []
+        self._actions = []
+        self._observations = []
+
         self.generate_state_set()
         self.generate_action_set()
         self.generate_observation_set()
+
+        self._trans = np.zeros((len(self._actions), len(self._states), len(self._states)))
+        self._obs_fun = np.zeros((len(self._actions), len(self._states), len(self._observations)))
+        self._reward_fun = np.zeros((len(self._actions), len(self._states)))
+
         self.generate_trans_fun()
         self.load_confusion_matrix('../models/xval_predicate_behavior_confusion_matrices.csv')
         self.generate_obs_fun()
@@ -61,8 +70,6 @@ class Model:
 
 
     def generate_state_set(self):
-
-        self._states = []
 
         for i in range(self._num_comp_states):
             self.generate_state_set_helper(i, 0, [], len(self._prop_names))
@@ -95,7 +102,7 @@ class Model:
 
     def generate_action_set(self):
 
-        self._actions = []
+
         self._actions.append(Action(False, 'look', None))
         self._actions.append(Action(False, 'ask', None))
         self._actions.append(Action(False, 'press', None))
@@ -122,7 +129,7 @@ class Model:
 
     def generate_observation_set(self):
 
-        self._observations = []
+
         self.generate_observation_set_helper(0, [], len(self._prop_names))
         self._observations.append(Obs(True, None))
 
@@ -139,7 +146,6 @@ class Model:
 
     def generate_trans_fun(self):
 
-        self._trans = np.zeros((len(self._actions), len(self._states), len(self._states)))
 
         for a_idx, a_val in enumerate(self._actions):
             if a_val._name == 'look':
@@ -233,7 +239,6 @@ class Model:
 
     def generate_obs_fun(self):
 
-        self._obs_fun = np.zeros((len(self._actions), len(self._states), len(self._observations)))
         # for a_idx, a_val in enumerate(self._actions):
         #     for s_idx, s_val in enumerate(self._states):
         #         self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
@@ -306,7 +311,7 @@ class Model:
                     print('prob: ' + str(prob))
 
     def generate_reward_fun(self):
-        self._reward_fun = np.zeros((len(self._actions), len(self._states)))
+
         for a_idx, a_val in enumerate(self._actions):
             for s_idx, s_val in enumerate(self._states):
                 if s_val._term == True:
