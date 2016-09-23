@@ -2,6 +2,7 @@
 
 
 import random
+import os
 import numpy as np
 import sys
 from constructor import Model, State, Action, Obs
@@ -60,7 +61,7 @@ class Simulator(object):
 
     def get_reward(self, a_idx, s_idx):
 
-    	return self._model._reward_fun(a_idx, s_idx)
+    	return self._model._reward_fun[a_idx, s_idx]
 
     def update(self, a_idx, o_idx, b):
 
@@ -109,7 +110,9 @@ def main(argv):
     policy_name = 'output.policy'
     appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
     timeout = 10
-    print('computing policy "' + policy_name + '" for model "' + model_name + '"')
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    print('computing policy "' + dir_path + '/' + policy_name + 
+          '" for model "' + model_name + '"')
     print('this will take at most ' + str(timeout) + ' seconds...')
     solver.compute_policy(model_name, policy_name, appl, timeout)
 
@@ -125,7 +128,8 @@ def main(argv):
     	reward = simulator.run()
     	overall_reward += reward
 
-   	print('average reward over ' + num_trials + ' is: ' + (float)overall_reward/num_trials)
+   	print('average reward over ' + str(num_trials) + ' is: ' +
+        str(overall_reward/float(num_trials)))
 
 if __name__ == "__main__":
     main(sys.argv)
