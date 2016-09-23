@@ -58,6 +58,10 @@ class Simulator(object):
         else:
             sys.exit('Error in changing to the next state')
 
+    def get_reward(self, a_idx, s_idx):
+
+    	return self._model._reward_fun(a_idx, s_idx)
+
     def update(self, a_idx, o_idx, b):
 
         retb = np.dot(b, self._model._trans[a_idx, :])
@@ -71,11 +75,15 @@ class Simulator(object):
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
         b = self.init_belief()
+        reward = 0
 
         while True:
             a_idx = self._policy.select_action(b)
             a = self._model._actions[a_idx]
             print('action selected: ' + a._name)
+
+            reward += self.get_reward(a_idx, s_idx)
+
             if a._term is True: 
                 break
 
@@ -85,6 +93,8 @@ class Simulator(object):
             [o_idx, o] = self.observe(s_idx, a_idx)
             print('observation made: ' + o._name)
             b = self.update(a_idx, o_idx, b)
+
+        return reward
 
 def main(argv):
 
@@ -108,7 +118,14 @@ def main(argv):
 
     print('starting simulation')
     simulator = Simulator(model, policy)
-    simulator.run()
+
+    num_trials = 100
+    overall_reward = 0
+    for i in range(num_trials): 
+    	reward = simulator.run()
+    	overall_reward += reward
+
+   	print('average reward over ' + num_trials + ' is: ' + (float)overall_reward/num_trials)
 
 if __name__ == "__main__":
     main(sys.argv)
