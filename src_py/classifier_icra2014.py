@@ -7,6 +7,9 @@ import numpy as np
 import sys
 import csv
 
+# classifiers
+from sklearn import svm
+
 class ClassifierICRA(object):
 	
 	def __init__(self, data_path, behaviors, modalities,predicates):
@@ -76,6 +79,9 @@ class ClassifierICRA(object):
 		key = object_id+"_"+str(trial_number)
 		return self._context_db_dict[context][key]
 	
+	def getObjectIDs(self):
+		return self._object_ids
+	
 	def isPredicateTrue(self,predicate,object_id):
 		if predicate in object_id:
 			return True
@@ -83,21 +89,73 @@ class ClassifierICRA(object):
 	
 	# train_objects: a list of training objects
 	# num_interaction_trials:	how many datapoint per object, from 1 to 10
-	def trainClassifier(self,train_objects,num_interaction_trials):
+	def trainClassifiers(self,train_objects,num_interaction_trials):
 		# for each predicate
+		
+		# dictionary storing the ensemble of classifiers (one per context) for each predicate
+		self._predicate_classifier_dict = dict()
+		self._predicate_data_dict = dict()
+		
 		for predicate in self._predicates:
 			
+			# dictionary storing the classifier for each context for this predicate
+			classifier_p_dict = dict()
+			data_p_dict = dict()
+			
+			print("Training classifiers for predicate '"+predicate+"'")
 			# separate positive and negative examples
-			positive_examples = []
-			negative_examples = []
+			positive_object_examples = []
+			negative_object_examples = []
 			for o in train_objects:
 				if self.isPredicateTrue(predicate,o):
-					positive_examples.append(o)
+					positive_object_examples.append(o)
 				else:
-					negative_examples.append(o)
+					negative_object_examples.append(o)
+			
+			if len(positive_object_examples) == 0 or len(negative_object_examples) == 0:
+				print("[WARN] skipping training as either positive or negative examples are not available")
+				continue
+			
+			print("Positive examples: "+str(positive_object_examples))
+			print("Negative examples: "+str(negative_object_examples))
 			
 			# train classifier for each context
-	
+			for context in self._contexts:
+				# create dataset for this context 
+				X = []
+				Y = []
+				for o in positive_object_examples:
+					for t in range(1,num_interaction_trials+1):
+						x_ot = self.getFeatures(context,o,t)
+						y_ot = 1
+						X.append(x_ot)
+						Y.append(y_ot)
+				for o in negative_object_examples:
+					for t in range(1,num_interaction_trials+1):
+						x_ot = self.getFeatures(context,o,t)
+						y_ot = 0
+						X.append(x_ot)
+						Y.append(y_ot)
+				
+				# the dataset is now ready; X is the inputs and Y the outputs or target
+				
+				# create the SVM
+				print("Training classifier with "+str(len(X)) + " datapoints.")
+				classifier_cp = svm.SVC(gamma=0.001, C=100.)
+				classifier_cp.fit(X, Y)
+				
+				# store the classifier and the dataset
+				classifier_p_dict[context] = classifier_cp
+				data_p_dict[context] = [X,Y]  
+				  
+				#print("Dataset for context "+context+":")
+				#print X
+				#print Y
+			
+			# store ensemble in dictionary
+			self._predicate_classifier_dict[predicate] = classifier_p_dict
+			self._predicate_data_dict[predicate] = data_p_dict
+		
 	def isValidContext(self,behavior,modality):
 		if behavior == "look":
 			if modality == "color" or modality == "patch":
@@ -122,9 +180,21 @@ def main(argv):
 	classifier = ClassifierICRA(datapath,behaviors,modalities,predicates)
 	print "Classifier created..."
 	
-	#test_f = classifier.getFeatures("look-color","light_brown_glass",10)
-	#print test_f
+	# some train parameters
+	num_train_objects = 10
+	num_trials_per_object = 10
 	
 	
+	# get all object ids and shuffle them
+	object_ids = classifier.getObjectIDs();
+	random.shuffle(object_ids)
+	print object_ids
+	# pick random subset for train
+	train_object_ids = object_ids[0:num_train_objects]
+	print train_object_ids
+	
+	classifier.trainClassifiers(train_object_ids,num_trials_per_object)
+	
+	#
 if __name__ == "__main__":
     main(sys.argv)
