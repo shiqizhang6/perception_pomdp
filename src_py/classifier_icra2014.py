@@ -6,6 +6,7 @@ import os
 import numpy as np
 import sys
 import csv
+import copy
 
 # classifiers
 from sklearn import svm
@@ -87,6 +88,55 @@ class ClassifierICRA(object):
 			return True
 		return False
 	
+	
+	def createScikitClassifier(self):
+		# currently an SVM
+		return svm.SVC(gamma=0.001, C=100.)
+	
+	def crossValidate(self,X,Y,num_tests):
+		scores = []
+		
+		for fold in range(0,num_tests):
+			# shuffle data
+			random.seed(fold)
+			X_f = copy.deepcopy(X)
+			random.shuffle(X_f)
+			
+			random.seed(fold)
+			Y_f = copy.deepcopy(Y)
+			random.shuffle(Y_f)
+			
+			# split into train (2/3) and test (1/3)
+			X_f_train = X_f[0:len(X_f)*2/3]
+			Y_f_train = Y_f[0:len(Y_f)*2/3]
+			
+			X_f_test = X_f[len(X_f)*2/3:len(X_f)]
+			Y_f_test = Y_f[len(Y_f)*2/3:len(Y_f)]
+			
+			# create and train classifier
+			classifier_f = self.createScikitClassifier()
+			classifier_f.fit(X_f_train, Y_f_train)
+			
+			
+			score_f = classifier_f.score(X_f_test, Y_f_test) 
+			scores.append(score_f)
+		mean_score = np.mean(scores)
+		print mean_score
+		  
+	
+	def performCrossValidation(self, num_tests):
+		for predicate in self._predicates:
+			# this contains the context-specific classifier for the predicate
+			classifier_ensemble_dict = self._predicate_classifier_dict[predicate]
+			
+			# this contains the data for the predicates
+			pred_data_dict = self._predicate_data_dict[predicate]
+			
+			for context in self._contexts:
+				[X,Y] = pred_data_dict[context]
+				print("Cross-validating predicate " + predicate + " and context "+context+" with " + str(len(X)) + " points")
+				self.crossValidate(X,Y,num_tests)
+	
 	# train_objects: a list of training objects
 	# num_interaction_trials:	how many datapoint per object, from 1 to 10
 	def trainClassifiers(self,train_objects,num_interaction_trials):
@@ -141,7 +191,7 @@ class ClassifierICRA(object):
 				
 				# create the SVM
 				print("Training classifier with "+str(len(X)) + " datapoints.")
-				classifier_cp = svm.SVC(gamma=0.001, C=100.)
+				classifier_cp = self.createScikitClassifier()
 				classifier_cp.fit(X, Y)
 				
 				# store the classifier and the dataset
@@ -181,20 +231,37 @@ def main(argv):
 	print "Classifier created..."
 	
 	# some train parameters
-	num_train_objects = 10
+	num_train_objects = 24
 	num_trials_per_object = 10
 	
 	
 	# get all object ids and shuffle them
-	object_ids = classifier.getObjectIDs();
+	object_ids = copy.deepcopy(classifier.getObjectIDs());
+	
+	random.seed(1)
 	random.shuffle(object_ids)
 	print object_ids
+
+	
+	# do it again to check that the random seed shuffles the same way
+	#object_ids2 = classifier.getObjectIDs();
+	#random.seed(1)
+	#random.shuffle(object_ids2)
+	#print object_ids2
+	
+	
 	# pick random subset for train
 	train_object_ids = object_ids[0:num_train_objects]
-	print train_object_ids
+	#print train_object_ids
 	
+	# train classifier
 	classifier.trainClassifiers(train_object_ids,num_trials_per_object)
 	
-	#
+	
+	
+	# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
+	classifier.performCrossValidation(10)
+	
+	
 if __name__ == "__main__":
     main(sys.argv)
