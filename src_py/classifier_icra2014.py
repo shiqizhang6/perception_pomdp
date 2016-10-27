@@ -14,7 +14,7 @@ from sklearn.preprocessing import normalize
 
 class ClassifierICRA(object):
 	
-	def __init__(self, data_path, behaviors, modalities,predicates):
+	def __init__(self, data_path, behaviors, modalities, predicates):
 		# load data
 		self._path = data_path
 		self._behaviors = behaviors
@@ -47,7 +47,7 @@ class ClassifierICRA(object):
 		with open(object_file, 'rb') as f:
 			reader = csv.reader(f)
 			for row in reader:
-				self._object_ids.append(row[0])
+				self._object_ids.append(row[0])	
 				
 		print "Set of objects:"
 		print self._object_ids
@@ -345,6 +345,8 @@ def main(argv):
 	# pick random subset for train
 	train_object_ids = object_ids[0:num_train_objects]
 	#print train_object_ids
+	print("size of train_object_ids: " + str(len(train_object_ids)))
+	print("size of object_ids: " + str(len(object_ids)))
 	
 	# train classifier
 	classifier.trainClassifiers(train_object_ids,num_trials_per_object)
@@ -367,7 +369,7 @@ def main(argv):
 	print("Predicate probability score:\t"+str(output_prob))
 	
 	# test classifying multiple predicates using a single behavior
-	query_predicate_list = ['blue','medium','rice']
+	query_predicate_list = ['light','medium','heavy']
 	print("\nPredicate list query:\t"+str(query_predicate_list))
 	
 	output_probs = classifier.classifyMultiplePredicates(target_object,behavior,query_predicate_list)

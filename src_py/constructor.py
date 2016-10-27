@@ -46,7 +46,7 @@ class Model:
 
     def __init__(self, discount, prop_names, high_acc, ask_cost): 
         self._discount = discount
-        self._num_comp_states = 7
+        self._num_comp_states = 6
         self._prop_names = prop_names
         self._high = high_acc
         self._ask_cost = ask_cost
@@ -64,7 +64,7 @@ class Model:
         self._reward_fun = np.zeros((len(self._actions), len(self._states)))
 
         self.generate_trans_fun()
-        self.load_confusion_matrix('../models/xval_predicate_behavior_confusion_matrices.csv')
+        self.load_confusion_matrix('../data/icra2014/confusion_matrices_train12.csv')
         self.generate_obs_fun()
         self.generate_reward_fun()
 
@@ -100,18 +100,30 @@ class Model:
         else:
             return s_index*pow(2, len(prop_values)) + int(''.join(prop_values), 2)
 
+    def get_action_name(self, a_index):
+        for a_idx, a_val in enumerate(self._actions):
+            if a_index == a_idx:
+                return a_val._name
+        else:
+            return ""
+
+
     def generate_action_set(self):
 
-
+        # the action names must match the action names in confusion matrices (csv file)
         self._actions.append(Action(False, 'look', None))
-        self._actions.append(Action(False, 'ask', None))
-        self._actions.append(Action(False, 'press', None))
-        self._actions.append(Action(False, 'push', None))
         self._actions.append(Action(False, 'grasp', None))
-        self._actions.append(Action(False, 'lift', None))
+        self._actions.append(Action(False, 'lift_slow', None))
         self._actions.append(Action(False, 'hold', None))
-        self._actions.append(Action(False, 'lower', None))
-        self._actions.append(Action(False, 'drop', None))
+        self._actions.append(Action(False, 'shake', None))
+        self._actions.append(Action(False, 'high_velocity_shake', None))
+        self._actions.append(Action(False, 'low_drop', None))
+        self._actions.append(Action(False, 'tap', None))
+        self._actions.append(Action(False, 'poke', None))
+        self._actions.append(Action(False, 'push', None))
+        self._actions.append(Action(False, 'crush', None))
+
+        self._actions.append(Action(False, 'ask', None))
         self._actions.append(Action(False, 'reinit', None))
 
         self.generate_action_set_helper(0, [], len(self._prop_names))
@@ -146,10 +158,12 @@ class Model:
 
     def generate_trans_fun(self):
 
-
+        # going through all actions based on their names
         for a_idx, a_val in enumerate(self._actions):
+
             if a_val._name == 'look':
                 for s_idx, s_val in enumerate(self._states):
+
                     if s_val._term == False and s_val._s_index == 0:
                         tmp_s_idx = self.get_state_index(False, 1, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = 1.0
@@ -157,18 +171,21 @@ class Model:
                         self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            elif a_val._name == 'ask' or a_val._name == 'press':
+
+            elif a_val._name == 'ask' or a_val._name == 'crush':
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, s_idx] = 1.0
-            elif a_val._name == 'push':
+
+            elif a_val._name == 'tap' or a_val._name == 'poke' or a_val._name == 'push':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
-                        tmp_s_idx = self.get_state_index(False, 6, s_val._prop_values)
+                        tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
+
             elif a_val._name == 'grasp':
                 success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
@@ -178,15 +195,19 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            elif a_val._name == 'lift':
+
+            elif a_val._name == 'lift_slow':
                 success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
                         tmp_s_idx = self.get_state_index(False, 3, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                    elif s_val._term == False and s_val._s_index == 2:
+                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0                        
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
+
             elif a_val._name == 'hold':
                 success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
@@ -196,30 +217,33 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
-            elif a_val._name == 'lower':
-                success_push = 0.99
+
+            # elif a_val._name == 'lower':
+            #     success_push = 0.99
+            #     for s_idx, s_val in enumerate(self._states):
+            #         if s_val._term == False and s_val._s_index == 4:
+            #             tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
+            #             self._trans[a_idx, s_idx, tmp_s_idx] = success_push
+            #             self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+            #         else:
+            #             self._trans[a_idx, s_idx, s_idx] = 1.0
+
+            elif a_val._name == 'low_drop' or a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
+                success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-                    else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
-            elif a_val._name == 'drop':
-                success_push = 0.95
-                for s_idx, s_val in enumerate(self._states):
-                    if s_val._term == False and s_val._s_index == 5:
-                        tmp_s_idx = self.get_state_index(False, 6, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-                    elif s_val._term == False and s_val._s_index == 6:
+                    elif s_val._term == False and s_val._s_index == 5:
                         self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
+
             elif a_val._name == 'reinit':
                 success_push = 1.0
                 for s_idx, s_val in enumerate(self._states):
-                    if s_val._term == False and s_val._s_index == 6:
+                    if s_val._term == False and s_val._s_index == 5:
                         tmp_s_idx = self.get_state_index(False, 0, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
@@ -273,15 +297,15 @@ class Model:
                         if s_val._s_index != 1:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    elif a_val._name == 'push':
-                        if s_val._s_index != 6:
+                    elif a_val._name == 'push' or a_val._name == 'poke' or a_val._name == 'tap':
+                        if s_val._s_index != 5:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
                     elif a_val._name == 'grasp':
                         if s_val._s_index != 2:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    elif a_val._name == 'lift':
+                    elif a_val._name == 'lift_slow':
                         if s_val._s_index != 3:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
@@ -289,12 +313,12 @@ class Model:
                         if s_val._s_index != 4:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    elif a_val._name == 'lower':
+                    # elif a_val._name == 'lower':
+                    #     if s_val._s_index != 5:
+                    #         self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                    #         continue
+                    elif a_val._name == 'low_drop' or a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
                         if s_val._s_index != 5:
-                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
-                            continue
-                    elif a_val._name == 'drop':
-                        if s_val._s_index != 6:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
 
@@ -322,8 +346,30 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = 0.0
                 elif a_val._term == False and a_val._name == 'ask':
                     self._reward_fun[a_idx, s_idx] = self._ask_cost
-                elif a_val._term == False:
+
+                elif a_val._term == False and a_val._name == 'look':
+                    self._reward_fun[a_idx, s_idx] = -0.5
+                elif a_val._term == False and a_val._name == 'grasp':
+                    self._reward_fun[a_idx, s_idx] = -4.5
+                elif a_val._term == False and a_val._name == 'lift_slow':
+                    self._reward_fun[a_idx, s_idx] = -2.6              
+                elif a_val._term == False and a_val._name == 'hold':
                     self._reward_fun[a_idx, s_idx] = -1.0
+                elif a_val._term == False and a_val._name == 'shake':
+                    self._reward_fun[a_idx, s_idx] = -3.8
+                elif a_val._term == False and a_val._name == 'high_velocity_shake':
+                    self._reward_fun[a_idx, s_idx] = -4.1
+                elif a_val._term == False and a_val._name == 'low_drop':
+                    self._reward_fun[a_idx, s_idx] = -2.6
+                elif a_val._term == False and a_val._name == 'tap':
+                    self._reward_fun[a_idx, s_idx] = -4.2
+                elif a_val._term == False and a_val._name == 'poke':
+                    self._reward_fun[a_idx, s_idx] = -4.1
+                elif a_val._term == False and a_val._name == 'push':
+                    self._reward_fun[a_idx, s_idx] = -4.5
+                elif a_val._term == False and a_val._name == 'crush':
+                    self._reward_fun[a_idx, s_idx] = -5.2
+
                 elif a_val._prop_values == s_val._prop_values:
                     self._reward_fun[a_idx, s_idx] = 100.0
                 else:
@@ -371,8 +417,8 @@ class Model:
 
 def main(argv):
     
-    model = Model(0.99, ['prop1', 'prop3'], 0.9, -90.0)
-    model.write_to_file('model.POMDP')
+    model = Model(0.99, ['green', 'heavy'], 0.9, -90.0)
+    model.write_to_file('model.pomdp')
 
 if __name__ == "__main__":
     main(sys.argv)
