@@ -23,6 +23,9 @@ class Simulator(object):
         self._object_prop_names = object_prop_names
         self._request_prop_names = request_prop_names
 
+        self._color_values = ['brown','green','blue']
+        self._weight_values = ['light','medium','heavy']
+        self._content_values = ['glass','screws','beans','rice']
 
     def train_classifier(self):
 
@@ -30,7 +33,7 @@ class Simulator(object):
         behaviors = ["look","grasp","lift_slow","hold","shake","high_velocity_shake","low_drop","tap","push","poke","crush"]
         modalities = ["color","patch","proprioception","audio"]
 
-        predicates = ['brown','green','blue','light','medium','heavy','glass','screws','beans','rice']
+        predicates = self._color_values + self._weight_values + self._content_values
 
 
         classifier = ClassifierICRA(datapath,behaviors,modalities,predicates)
@@ -124,13 +127,36 @@ class Simulator(object):
         obs_distribution = np.ones((2,2,2))
 
         o_name = 'p'
-        for prop_name in self._request_prop_names:
-            prob = self._classifier.classify(target_object, behavior, prop_name)
+        prob = 1.0
 
-            if prob > 0.5:
-                o_name += '1'
-            else:
-                o_name += '0'
+        for prop_name in self._request_prop_names:
+
+        	prob_list = []
+
+        	if prop_name in self._color_values:
+        		for v_color in self._color_values:
+        			prob_list += [self._classifier.classify(target_object, behavior, v_color)]
+
+    			max_idx = prob_list.index(max(prob_list))
+        		o_name += str(int(prop_name == self._color_values[max_idx]))
+
+    		elif prop_name in self._weight_values:
+
+        		for v_weight in self._weight_values:
+        			prob_list += [self._classifier.classify(target_object, behavior, v_weight)]
+
+    			max_idx = prob_list.index(max(prob_list))
+    			o_name += str(int(prop_name == self._weight_values[max_idx]))
+        			
+        	elif prop_name in self._content_values:
+
+        		for v_content in self._color_values:
+        			prob_list += [self._classifier.classify(target_object, behavior, v_content)]
+
+        		max_idx = prob_list.index(max(prob_list))
+    			o_name += str(int(prop_name == self._content_values[max_idx]))
+
+    		prob *= max(prob_list)
 
         for o_idx, o_val in enumerate(self._model._observations):
             if o_val._name == o_name:
@@ -213,9 +239,9 @@ def main(argv):
 
     for i in range(num_trials): 
 
-	    object_prop_names = [random.choice(['light','medium','heavy']), \
-	    					 random.choice(['brown','green','blue']), \
-	    					 random.choice(['glass','screws','beans','rice'])]
+	    object_prop_names = [random.choice(simulator_for_classifier._weight_values), \
+	    					 random.choice(simulator_for_classifier._color_values), \
+	    					 random.choice(simulator_for_classifier._content_values)]
 
 	    print 'object: ' + str(object_prop_names)
 
@@ -223,9 +249,9 @@ def main(argv):
 	    # request_prop_names = ['heavy', 'blue']
 
 	    # 
-	    request_prop_names_random = [random.choice(['light','medium','heavy']), \
-	    					         random.choice(['brown','green','blue']), \
-	    					         random.choice(['glass','screws','beans','rice'])]
+	    request_prop_names_random = [random.choice(simulator_for_classifier._weight_values), \
+	    					         random.choice(simulator_for_classifier._color_values), \
+	    					         random.choice(simulator_for_classifier._content_values)]
 
 	    request_prop_names_correct = object_prop_names
 
