@@ -17,13 +17,12 @@ import copy
 
 class Simulator(object):
 
-    def __init__(self, model, policy, object_prop_names, request_prop_names):
-
+    def __init__(self, model = None, policy = None, object_prop_names = None, request_prop_names = None):
         self._model = model
         self._policy = policy
         self._object_prop_names = object_prop_names
         self._request_prop_names = request_prop_names
-        self._classifier = self.train_classifier()
+
 
     def train_classifier(self):
 
@@ -117,6 +116,9 @@ class Simulator(object):
 
         behavior = self._model.get_action_name(a_idx)
 
+        if behavior == 'ask':
+        	return self.observe_sim(s_idx, a_idx)
+
         target_object = '_'.join(self._object_prop_names)
 
         obs_distribution = np.ones((2,2,2))
@@ -128,11 +130,11 @@ class Simulator(object):
             if prob > 0.5:
                 o_name += '1'
             else:
-                o_name += '0'       
+                o_name += '0'
 
         for o_idx, o_val in enumerate(self._model._observations):
             if o_val._name == o_name:
-                return o_idx, o_val
+                return o_idx, o_val, prob
         else:
             sys.exit('Error in making an observation in real')
 
@@ -141,9 +143,10 @@ class Simulator(object):
         rand = np.random.random_sample()
         acc = 0.0
         for i in range(len(self._model._observations)): 
-            acc += self._model._obs_fun[a_idx, s_idx, i]
-            if acc > rand:
-                return i, self._model._observations[i]
+        	o_prob = self._model._obs_fun[a_idx, s_idx, i]
+        	acc += o_prob
+        	if acc > rand:
+        		return i, self._model._observations[i], o_prob
         else:
             sys.exit('Error in making an observation in simulation')
 
@@ -190,9 +193,9 @@ class Simulator(object):
             [s_idx, s] = self.get_next_state(a_idx, s_idx)
             print('current state: ' + s._name)
 
-            # [o_idx, o] = self.observe_sim(s_idx, a_idx)
-            [o_idx, o] = self.observe_real(s_idx, a_idx)
-            print('observation made: ' + o._name)
+            # [o_idx, o, o_prob] = self.observe_sim(s_idx, a_idx)
+            [o_idx, o, o_prob] = self.observe_real(s_idx, a_idx)
+            print('observation made: ' + o._name + '  probability: ' + str(o_prob))
             b = self.update(a_idx, o_idx, b)
 
         return reward
@@ -200,42 +203,66 @@ class Simulator(object):
 def main(argv):
 
     print('initializing model and solver')
-    # the property names of the actual on-table object
-    object_prop_names = ['heavy', 'blue', 'beans']
+    # a simple case that handcode the object properties
+    # object_prop_names = ['heavy', 'blue', 'beans']
 
-    # the property names that human asks about
-    request_prop_names = ['blue', 'glass']
-
-    model = Model(0.99, request_prop_names, 0.85, -40.0)
-    solver = Solver()
-
-    model_name = 'model.pomdp'
-    print('generating model file "' + model_name + '"')
-    model.write_to_file(model_name)
-
-    policy_name = 'output.policy'
-    appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-    timeout = 10
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    print('computing policy "' + dir_path + '/' + policy_name + 
-          '" for model "' + model_name + '"')
-    print('this will take at most ' + str(timeout) + ' seconds...')
-    solver.compute_policy(model_name, policy_name, appl, timeout)
-
-    print('parsing policy: ' + policy_name)
-    policy = Policy(len(model._states), len(model._actions), policy_name)
-
-    print('starting simulation')
-    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
-
-    num_trials = 1
+    num_trials = 100
     overall_reward = 0
-    for i in range(num_trials): 
-        reward = simulator.run()
-        overall_reward += reward
+    simulator_for_classifier = Simulator()
+    classifier = simulator_for_classifier.train_classifier()
 
-    print('average reward over ' + str(num_trials) + ' is: ' +
-        str(overall_reward/float(num_trials)))
+    for i in range(num_trials): 
+
+	    object_prop_names = [random.choice(['light','medium','heavy']), \
+	    					 random.choice(['brown','green','blue']), \
+	    					 random.choice(['glass','screws','beans','rice'])]
+
+	    print 'object: ' + str(object_prop_names)
+
+	    # the property names that human asks about
+	    # request_prop_names = ['heavy', 'blue']
+
+	    # 
+	    request_prop_names_random = [random.choice(['light','medium','heavy']), \
+	    					         random.choice(['brown','green','blue']), \
+	    					         random.choice(['glass','screws','beans','rice'])]
+
+	    request_prop_names_correct = object_prop_names
+
+	    request_prop_names = random.choice([request_prop_names_random, request_prop_names_correct])
+
+	    request_prop_names = request_prop_names[0:random.choice([1,2,3])]
+
+	    print 'request: ' + str(request_prop_names)	    
+
+	    model = Model(0.99, request_prop_names, 0.85, -40.0)
+	    solver = Solver()
+
+	    model_name = 'model.pomdp'
+	    print('generating model file "' + model_name + '"')
+	    model.write_to_file(model_name)
+
+	    policy_name = 'output.policy'
+	    appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+	    timeout = 3
+	    dir_path = os.path.dirname(os.path.realpath(__file__))
+	    print('computing policy "' + dir_path + '/' + policy_name + 
+	          '" for model "' + model_name + '"')
+	    print('this will take at most ' + str(timeout) + ' seconds...')
+	    solver.compute_policy(model_name, policy_name, appl, timeout)
+
+	    print('parsing policy: ' + policy_name)
+	    policy = Policy(len(model._states), len(model._actions), policy_name)
+
+	    print('starting simulation')
+	    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+	    simulator._classifier = classifier
+
+	    reward = simulator.run()
+	    overall_reward += reward
+	    print 'reward: ' + str(reward) + '\n'
+
+    print('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))
 
 if __name__ == "__main__":
     main(sys.argv)
