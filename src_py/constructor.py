@@ -64,7 +64,7 @@ class Model:
         self._reward_fun = np.zeros((len(self._actions), len(self._states)))
 
         self.generate_trans_fun()
-        self.load_confusion_matrix('../data/icra2014/confusion_matrices_train12.csv')
+        self.load_confusion_matrix('../data/icra2014/confusion_matrices_train5.csv')
         self.generate_obs_fun()
         self.generate_reward_fun()
 
@@ -228,15 +228,25 @@ class Model:
             #         else:
             #             self._trans[a_idx, s_idx, s_idx] = 1.0
 
-            elif a_val._name == 'low_drop' or a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
+
+            elif a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
+                success_push = 0.95
+                for s_idx, s_val in enumerate(self._states):
+                    if s_val._term == False and s_val._s_index == 4:
+                        tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
+                        self._trans[a_idx, s_idx, tmp_s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, s_idx] = success_push
+                    else:
+                        self._trans[a_idx, s_idx, s_idx] = 1.0
+
+
+            elif a_val._name == 'low_drop':
                 success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
                         self._trans[a_idx, s_idx, tmp_s_idx] = success_push
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-                    elif s_val._term == False and s_val._s_index == 5:
-                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 

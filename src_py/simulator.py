@@ -27,6 +27,9 @@ class Simulator(object):
         self._weight_values = ['light','medium','heavy']
         self._content_values = ['glass','screws','beans','rice']
 
+        self._action_cnt = 0
+        self._predefined_action_sequence = [0, 1, 2, 3, 4, 6]
+
     def train_classifier(self):
 
         datapath = "../data/icra2014"
@@ -119,7 +122,7 @@ class Simulator(object):
 
         behavior = self._model.get_action_name(a_idx)
 
-        if behavior == 'ask':
+        if behavior == 'ask' or behavior == 'reinit':
         	return self.observe_sim(s_idx, a_idx)
 
         target_object = '_'.join(self._object_prop_names)
@@ -199,7 +202,7 @@ class Simulator(object):
 
         return retb/sum(retb)
 
-    def run(self):
+    def run(self, planner):
 
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
@@ -207,22 +210,47 @@ class Simulator(object):
         reward = 0
 
         while True:
-            a_idx = self._policy.select_action(b)
-            a = self._model._actions[a_idx]
-            print('action selected: ' + a._name)
 
-            reward += self.get_reward(a_idx, s_idx)
+        	if planner == 'pomdp':
+        		a_idx = self._policy.select_action(b)
 
-            if a._term is True: 
-                break
+        	elif planner == 'random':
+        		a_idx = random.choice(range(len(self._model._actions)))
 
-            [s_idx, s] = self.get_next_state(a_idx, s_idx)
-            print('current state: ' + s._name)
+        	elif planner == 'predefined':
+        		# if all predefined actions have been used, take a terminal action
 
-            # [o_idx, o, o_prob] = self.observe_sim(s_idx, a_idx)
-            [o_idx, o, o_prob] = self.observe_real(s_idx, a_idx)
-            print('observation made: ' + o._name + '  probability: ' + str(o_prob))
-            b = self.update(a_idx, o_idx, b)
+        		if self._action_cnt == len(self._predefined_action_sequence):
+        			prop_values = self._model._states[b.argmax()]._prop_values
+        			fake_action = Action(True, None, prop_values)
+        			for action_idx, action_val in enumerate(self._model._actions):
+        				if action_val._name == fake_action._name:
+        					a_idx = action_idx
+        					break;
+        			else:
+        				sys.exit('Error in selecting predefined actions')
+
+        		else:
+        			a_idx = self._predefined_action_sequence[self._action_cnt]
+        			self._action_cnt += 1
+
+        	a = self._model._actions[a_idx]
+        	print('action selected (' + planner + '): ' + a._name)
+
+        	reward += self.get_reward(a_idx, s_idx)
+
+        	if a._term is True: 
+        		break
+
+        	[s_idx, s] = self.get_next_state(a_idx, s_idx)
+        	print('current state: ' + s._name)
+
+
+        	# [o_idx, o, o_prob] = self.observe_sim(s_idx, a_idx)
+        	[o_idx, o, o_prob] = self.observe_real(s_idx, a_idx)
+
+        	print('observation made: ' + o._name + '  probability: ' + str(o_prob))
+        	b = self.update(a_idx, o_idx, b)
 
         return reward
 
@@ -268,23 +296,33 @@ def main(argv):
 	    print('generating model file "' + model_name + '"')
 	    model.write_to_file(model_name)
 
-	    policy_name = 'output.policy'
-	    appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-	    timeout = 3
-	    dir_path = os.path.dirname(os.path.realpath(__file__))
-	    print('computing policy "' + dir_path + '/' + policy_name + 
-	          '" for model "' + model_name + '"')
-	    print('this will take at most ' + str(timeout) + ' seconds...')
-	    solver.compute_policy(model_name, policy_name, appl, timeout)
+	    planner = 'pomdp'
 
-	    print('parsing policy: ' + policy_name)
-	    policy = Policy(len(model._states), len(model._actions), policy_name)
+	    if planner == 'pomdp':
 
-	    print('starting simulation')
-	    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+	    	policy_name = 'output.policy'
+	    	appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+	    	timeout = 2
+	    	dir_path = os.path.dirname(os.path.realpath(__file__))
+	    	print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
+	    	print('this will take at most ' + str(timeout) + ' seconds...')
+	    	solver.compute_policy(model_name, policy_name, appl, timeout)
+
+	    	print('parsing policy: ' + policy_name)
+	    	policy = Policy(len(model._states), len(model._actions), policy_name)
+
+	    	print('starting simulation')
+	    	simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+
+	    elif planner == 'predefined' or planner == 'random':
+	    	simulator = Simulator(model, None, object_prop_names, request_prop_names)
+
+	    else:
+	    	sys.exit('planner selection error')
+
 	    simulator._classifier = classifier
 
-	    reward = simulator.run()
+	    reward = simulator.run(planner)
 	    overall_reward += reward
 	    print 'reward: ' + str(reward) + '\n'
 
