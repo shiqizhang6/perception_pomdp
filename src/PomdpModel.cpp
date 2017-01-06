@@ -134,7 +134,7 @@ PomdpModel::PomdpModel() {
 
     std::string laptop_path, desktop_path, laptop_obs_path, desktop_obs_path, laptop_reward_path, desktop_reward_path; 
 
-    laptop_path = ("/home/szhang/projects/2015_perception_pomdp/models/"); 
+    laptop_path = ("/home/szhang/projects/2017_perception_pomdp/perception_pomdp/models/"); 
     desktop_path = ("/home/shiqi/projects/2015_perception_pomdp/models/"); 
 
     laptop_obs_path = laptop_path + "train10/"; 
