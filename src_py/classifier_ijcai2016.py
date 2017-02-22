@@ -12,14 +12,18 @@ import copy
 from sklearn import svm
 from sklearn.preprocessing import normalize
 
+from oracle_ijcai2016 import TFTable
+
 class ClassifierIJCAI(object):
 	
-	def __init__(self, data_path, behaviors, modalities, predicates):
+	def __init__(self, data_path, behaviors, modalities, T_oracle, objects_ids_filename):
 		# load data
 		self._path = data_path
 		self._behaviors = behaviors
 		self._modalities = modalities
-		self._predicates = predicates
+		self._T_oracle = T_oracle
+		self._predicates = T_oracle.getAllPredicates()
+		
 		
 		# some constants
 		self._num_trials_per_object = 5
@@ -31,23 +35,30 @@ class ClassifierIJCAI(object):
 		for b in behaviors:
 			for m in modalities:
 				if self.isValidContext(b,m):
-					context_bm = b+"-"+m
+					context_bm = b+"_"+m
 					self._contexts.append(context_bm)
 		
 		# print to verify
-		print "Valid contexts:"
-		print self._contexts
+		print("Valid contexts:")
+		print(self._contexts)
 		
 		# dictionary that holds context specific weights for each predicate
 		self._pred_context_weights_dict = dict()
 		
 		# load object ids -- integers from 1 to 32
 		self._object_ids = []
-		for i in range(1:32):
+		for i in range(1,33):
 			self._object_ids.append(i)
 		
-		
-		
+		# load string ids to map to ingeters
+		string_to_int_id_dict = dict()
+		with open(objects_ids_filename, 'r') as f:
+			reader = csv.reader(f)
+			for row in reader:
+				string_id = str(row[0])
+				int_id = int(row[1])
+				print(string_id+" "+str(int_id))
+				string_to_int_id_dict[string_id]=int_id
 		
 		#object_file = self._path +"/objects.txt"
 		#with open(object_file, 'rb') as f:
@@ -55,8 +66,8 @@ class ClassifierIJCAI(object):
 		#	for row in reader:
 		#		self._object_ids.append(row[0])	
 				
-		print "Set of objects:"
-		print self._object_ids
+		print("Set of objects:")
+		print(self._object_ids)
 		
 		# load data for each context
 		
@@ -71,36 +82,54 @@ class ClassifierIJCAI(object):
 			for o in self._object_ids:
 				object_trial_count_dict[o]=0
 			
+			#print(object_trial_count_dict)
+			
 			# dictionary holding all data in this context
 			# key: "<object_id>_<trial_integer>" (e.g., "heavy_blue_glass_4")
 			# data: feature vector of floats
 			data_dict = dict()
 			
 			print('Loading ' + context_filename+ '...')
-			with open(context_filename, 'rb') as f:
+			with open(context_filename, 'r') as f:
 				reader = csv.reader(f)
 				for row in reader:
-					obj = row[0]
-					features = row[1:len(row)]
-					object_trial_count_dict[obj] += 1
-					
-					key = obj+"_"+str(object_trial_count_dict[obj])
-					data_dict[key] = features
+					if context == "look_vgg":
+						obj = row[0]
+						obj = obj[5:len(obj)-6]
+						#print(obj)	
+						int_id_o = string_to_int_id_dict[obj]
+						#print(int_id_o)
+						
+						object_trial_count_dict[int_id_o] += 1
+						
+						
+						features = row[1:len(row)]
+						#print(features)
+						key = str(int_id_o)+"_"+str(object_trial_count_dict[int_id_o])
+						data_dict[key] = features
+					else:
+						obj = int(row[0])
+						features = row[1:len(row)]
+						object_trial_count_dict[obj] += 1
+						
+						key = str(obj)+"_"+str(object_trial_count_dict[obj])
+						data_dict[key] = features
 					
 			
 			self._context_db_dict[context] = data_dict
 	
 	def getFeatures(self,context,object_id,trial_number):
-		key = object_id+"_"+str(trial_number)
+		key = str(object_id)+"_"+str(trial_number)
 		return self._context_db_dict[context][key]
 	
 	def getObjectIDs(self):
 		return self._object_ids
 	
 	def isPredicateTrue(self,predicate,object_id):
-		if predicate in object_id:
-			return True
-		return False
+		return self._T_oracle.getTorF(predicate,str(object_id))
+		#if predicate in object_id:
+		#	return True
+		#return False
 	
 	# inputs: learn_prob_model (either True or False)
 	def createScikitClassifier(self, learn_prob_model):
@@ -238,11 +267,16 @@ class ClassifierIJCAI(object):
 	
 	def isValidContext(self,behavior,modality):
 		if behavior == "look":
-			if modality == "color" or modality == "patch":
+			if modality == "color" or modality == "shape" or modality == "vgg":
 				return True
 			else: 
 				return False
-		elif modality == "proprioception" or modality == "audio":
+		elif modality == "fingers":
+			if behavior == "grasp":
+				return True
+			else:
+				return False
+		elif modality == "effort" or modality == "audio" or modality == "position":
 			return True
 		else:
 			return False
@@ -315,19 +349,26 @@ class ClassifierIJCAI(object):
 		
 def main(argv):
 		
-	datapath = "../data/icra2014"
-	behaviors = ["look","grasp","lift_slow","hold","shake","high_velocity_shake","low_drop","tap","push","poke","crush"]
-	modalities = ["color","patch","proprioception","audio"]
+	datapath = "../data/ijcai2016"
+	behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
+	modalities = ["color","shape","vgg","effort","position","fingers","audio"]
 
 	predicates = ['brown','green','blue','light','medium','heavy','glass','screws','beans','rice']
+	
+	# file that maps names to IDs
+	objects_ids_file = "../data/ijcai2016/object_list.csv"
 
+	# create oracle
+	T_oracle = TFTable()
+	print("All predicates:")
+	print(T_oracle.getAllPredicates())
 
-	classifier = ClassifierICRA(datapath,behaviors,modalities,predicates)
-	print "Classifier created..."
+	classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
+	#print "Classifier created..."
 	
 	# some train parameters
 	num_train_objects = 24
-	num_trials_per_object = 10
+	num_trials_per_object = 5
 	
 	# how train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset)
 	num_cross_validation_tests = 5
@@ -336,21 +377,16 @@ def main(argv):
 	# get all object ids and shuffle them
 	object_ids = copy.deepcopy(classifier.getObjectIDs());
 	
-	random.seed(1)
+	random.seed(2)
 	random.shuffle(object_ids)
-	#print object_ids
+	print(object_ids)
 
 	
-	# do it again to check that the random seed shuffles the same way
-	#object_ids2 = classifier.getObjectIDs();
-	#random.seed(1)
-	#random.shuffle(object_ids2)
-	#print object_ids2
 	
 	
 	# pick random subset for train
 	train_object_ids = object_ids[0:num_train_objects]
-	#print train_object_ids
+	print(train_object_ids)
 	print("size of train_object_ids: " + str(len(train_object_ids)))
 	print("size of object_ids: " + str(len(object_ids)))
 	
@@ -358,28 +394,28 @@ def main(argv):
 	classifier.trainClassifiers(train_object_ids,num_trials_per_object)
 	
 	# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
-	classifier.performCrossValidation(5)
+	#classifier.performCrossValidation(5)
 	
 	# optional: reset random seed to something specific to this evaluation run (after cross-validation it is fixed)
-	random.seed(235)
+	#random.seed(235)
 	
 	# test classifying an object based on a single behavior and 1 predicate
-	target_object = object_ids[num_train_objects+1]
-	behavior = "look"
-	query_predicate = "blue"
+	#target_object = object_ids[num_train_objects+1]
+	#behavior = "look"
+	#query_predicate = "blue"
 	
-	print("\nTarget object: "+target_object+"\nbehavior: "+behavior+"\npredicate: "+query_predicate)
+	#print("\nTarget object: "+target_object+"\nbehavior: "+behavior+"\npredicate: "+query_predicate)
 	
-	output_prob = classifier.classify(target_object,behavior,query_predicate)
+	#output_prob = classifier.classify(target_object,behavior,query_predicate)
 	
-	print("Predicate probability score:\t"+str(output_prob))
+	#print("Predicate probability score:\t"+str(output_prob))
 	
 	# test classifying multiple predicates using a single behavior
-	query_predicate_list = ['light','medium','heavy']
-	print("\nPredicate list query:\t"+str(query_predicate_list))
+	#query_predicate_list = ['light','medium','heavy']
+	#print("\nPredicate list query:\t"+str(query_predicate_list))
 	
-	output_probs = classifier.classifyMultiplePredicates(target_object,behavior,query_predicate_list)
-	print("Output probs.:\t"+str(output_probs))
+	#output_probs = classifier.classifyMultiplePredicates(target_object,behavior,query_predicate_list)
+	#print("Output probs.:\t"+str(output_probs))
 	
 	
 if __name__ == "__main__":

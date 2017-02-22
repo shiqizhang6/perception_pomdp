@@ -6,7 +6,7 @@ import numpy as np
 
 class TFTable:
     def __init__(self):
-        table_path = "../data/labels.csv"
+        table_path = "../data/ijcai2016/labels.csv"
         self.df = pd.read_csv(table_path,index_col=0)
 
     def getTorF(self,predicate, objectID):
