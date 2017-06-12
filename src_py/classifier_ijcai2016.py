@@ -10,6 +10,7 @@ import copy
 
 # classifiers
 from sklearn import svm
+from sklearn import tree
 from sklearn.preprocessing import normalize
 
 from oracle_ijcai2016 import TFTable
@@ -24,6 +25,8 @@ class ClassifierIJCAI(object):
 		self._T_oracle = T_oracle
 		self._predicates = T_oracle.getAllPredicates()
 		
+		# predicates for which we have classifiers
+		self._learned_predicates = []
 		
 		# some constants
 		self._num_trials_per_object = 5
@@ -39,8 +42,8 @@ class ClassifierIJCAI(object):
 					self._contexts.append(context_bm)
 		
 		# print to verify
-		print("Valid contexts:")
-		print(self._contexts)
+		#print("Valid contexts:")
+		#print(self._contexts)
 		
 		# dictionary that holds context specific weights for each predicate
 		self._pred_context_weights_dict = dict()
@@ -50,6 +53,8 @@ class ClassifierIJCAI(object):
 		for i in range(1,33):
 			self._object_ids.append(i)
 		
+		self._object_name_dict = dict()
+		
 		# load string ids to map to ingeters
 		string_to_int_id_dict = dict()
 		with open(objects_ids_filename, 'r') as f:
@@ -57,8 +62,9 @@ class ClassifierIJCAI(object):
 			for row in reader:
 				string_id = str(row[0])
 				int_id = int(row[1])
-				print(string_id+" "+str(int_id))
+				#print(string_id+" "+str(int_id))
 				string_to_int_id_dict[string_id]=int_id
+				self._object_name_dict[int_id]=string_id
 		
 		#object_file = self._path +"/objects.txt"
 		#with open(object_file, 'rb') as f:
@@ -66,8 +72,8 @@ class ClassifierIJCAI(object):
 		#	for row in reader:
 		#		self._object_ids.append(row[0])	
 				
-		print("Set of objects:")
-		print(self._object_ids)
+		#print("Set of objects:")
+		#print(self._object_ids)
 		
 		# load data for each context
 		
@@ -89,7 +95,7 @@ class ClassifierIJCAI(object):
 			# data: feature vector of floats
 			data_dict = dict()
 			
-			print('Loading ' + context_filename+ '...')
+			#print('Loading ' + context_filename+ '...')
 			with open(context_filename, 'r') as f:
 				reader = csv.reader(f)
 				for row in reader:
@@ -131,13 +137,40 @@ class ClassifierIJCAI(object):
 		#	return True
 		#return False
 	
+	def getObjectName(self,object_id):
+		return self._object_name_dict[object_id]
+	
+	def computeKappa(self,confusion_matrix):
+		# compute statistics for kappa
+		TN = confusion_matrix[0][0]
+		TP = confusion_matrix[1][1]
+		FP = confusion_matrix[1][0]
+		FN = confusion_matrix[0][1]
+		
+		total_accuracy = (TN+TP)/np.sum(confusion_matrix)
+		random_accuracy = ((TN+FP)*(TN+FN) + (FN+TP)*(FP+TP)) / ( np.sum(confusion_matrix) * np.sum(confusion_matrix))
+		
+		kappa = (total_accuracy - random_accuracy) / (1.0 - random_accuracy)
+		return kappa
+	
 	# inputs: learn_prob_model (either True or False)
 	def createScikitClassifier(self, learn_prob_model):
-		# currently an SVM
-		return svm.SVC(gamma=0.001, C=100, probability = learn_prob_model)
+		# SVM
+		#return svm.SVC(gamma=0.001, C=100, probability = learn_prob_model)
+	
+		return svm.SVC(kernel="poly",C=10,degree=2,probability = learn_prob_model)
+	
+	
+		# decision tree
+		#return tree.DecisionTreeClassifier(criterion='gini', splitter='best',max_depth=None, min_samples_split=2, min_samples_leaf=4, min_weight_fraction_leaf=0.0, max_features=None, random_state=None, max_leaf_nodes=None, min_impurity_split=1e-07, class_weight=None, presort=False)
+	
 	
 	def crossValidate(self,X,Y,num_tests):
 		scores = []
+		
+		# confusion matrix
+		CM_total = np.zeros( (2,2) )
+			
 		
 		for fold in range(0,num_tests):
 			# shuffle data - both inputs and outputs are shuffled using the same random seed to ensure correspondance
@@ -150,26 +183,54 @@ class ClassifierIJCAI(object):
 			random.shuffle(Y_f)
 			
 			# split into train (2/3) and test (1/3)
-			X_f_train = X_f[0:len(X_f)*2/3]
-			Y_f_train = Y_f[0:len(Y_f)*2/3]
+			X_f_train = X_f[0:int(len(X_f)*2/3)]
+			Y_f_train = Y_f[0:int(len(Y_f)*2/3)]
 			
-			X_f_test = X_f[len(X_f)*2/3:len(X_f)]
-			Y_f_test = Y_f[len(Y_f)*2/3:len(Y_f)]
+			X_f_test = X_f[int(len(X_f)*2/3):len(X_f)]
+			Y_f_test = Y_f[int(len(Y_f)*2/3):len(Y_f)]
 			
 			# create and train classifier
-			classifier_f = self.createScikitClassifier(False)
+			classifier_f = self.createScikitClassifier(True)
 			classifier_f.fit(X_f_train, Y_f_train)
 			
 			
 			score_f = classifier_f.score(X_f_test, Y_f_test) 
 			scores.append(score_f)
-		mean_score = np.mean(scores)
-		#print mean_score
-		return mean_score
+			
+			# for each test point
+			Y_f_est = classifier_f.predict(X_f_test)
+			
+			# confusion matrix
+			CM = np.zeros( (2,2) )
+			
+			#print(Y_f_est)
+			#print(Y_f_test)
+			
+			for i in range(len(Y_f_est)):
+				#print(str(Y_f_est[i])+" "+str(Y_f_test[i]))
+				actual = Y_f_test[i]
+				predicted = Y_f_est[i]
+				
+				CM[predicted][actual] = CM[predicted][actual] + 1
+				#if actual == 1 and predicted == 1:
+				#	CM[1][1] = CM[1][1]+1
+				#else if actual == 0 and predicted == 0:
+				#	CM[0][0] = CM[0][0]+1
+				#else if actual == 1 and predicted == 0:
+				#	CM[0]
+			#print(CM)
+			CM_total = CM_total + CM
+			
+		#print(CM_total)
+		#print(np.sum(CM_total))
+		
+		kappa = self.computeKappa(CM_total)
+
+		return kappa
 		  
 	
-	def performCrossValidation(self, num_tests):
-		for predicate in self._predicates:
+	def performCrossValidation(self, num_tests, test_predicates):
+		for predicate in test_predicates:
 			print("Cross-validating classifiers for "+predicate)
 			# this contains the context-specific classifier for the predicate
 			
@@ -182,54 +243,66 @@ class ClassifierIJCAI(object):
 				pred_data_dict = self._predicate_data_dict[predicate]
 			
 				pred_context_weights = dict()
+				#print("Predicate = "+predicate)
 				for context in self._contexts:
 					[X,Y] = pred_data_dict[context]
 					#print("Cross-validating predicate " + predicate + " and context "+context+" with " + str(len(X)) + " points")
-					score_cp = self.crossValidate(X,Y,num_tests)
+					kappa = self.crossValidate(X,Y,num_tests)
 				
 					# store the weight for that context and predicate
-					pred_context_weights[context]=score_cp
+					pred_context_weights[context]=kappa
+					
+					if pred_context_weights[context] <= 0.0:
+						pred_context_weights[context] = 0.001
+					else:
+						print("\t"+context+":\t"+str(pred_context_weights[context]))
 				
 				self._pred_context_weights_dict[predicate] = pred_context_weights
 			else:
 				print("[WARN] Cannot perform CV for predicate "+predicate)
-		#print "Context weight dict:"
-		#print self._pred_context_weights_dict
+		#print("Context weight dict:")
+		#print(self._pred_context_weights_dict)
 	
 	# train_objects: a list of training objects
 	# num_interaction_trials:	how many datapoint per object, from 1 to 10
-	def trainClassifiers(self,train_objects,num_interaction_trials):
+	def trainClassifiers(self,train_objects,num_interaction_trials, train_predicates):
 		# for each predicate
 		
 		# dictionary storing the ensemble of classifiers (one per context) for each predicate
 		self._predicate_classifier_dict = dict()
 		self._predicate_data_dict = dict()
 		
-		for predicate in self._predicates:
+		for predicate in train_predicates:
 			
 			# dictionary storing the classifier for each context for this predicate
 			classifier_p_dict = dict()
 			data_p_dict = dict()
 			
-			print("Training classifiers for predicate '"+predicate+"'")
 			# separate positive and negative examples
 			positive_object_examples = []
 			negative_object_examples = []
 			for o in train_objects:
-				if self.isPredicateTrue(predicate,o):
-					positive_object_examples.append(o)
-				else:
-					negative_object_examples.append(o)
+				if self._T_oracle.hasLabel(predicate,str(o)):
+					if self.isPredicateTrue(predicate,o):
+						positive_object_examples.append(o)
+					else:
+						negative_object_examples.append(o)
+			
+			
 			
 			if len(positive_object_examples) == 0 or len(negative_object_examples) == 0:
-				print("[WARN] skipping training as either positive or negative examples are not available")
+				#print("[WARN] skipping training as either positive or negative examples are not available")
 				continue
+			
+			print("Training classifiers for predicate '"+predicate+"' with "+str(len(positive_object_examples)) +" positive and "+str(len(negative_object_examples))+" negative object examples.")
+			
 			
 			#print("Positive examples: "+str(positive_object_examples))
 			#print("Negative examples: "+str(negative_object_examples))
 			
 			# train classifier for each context
 			for context in self._contexts:
+				#print(context)
 				# create dataset for this context 
 				X = []
 				Y = []
@@ -264,10 +337,18 @@ class ClassifierIJCAI(object):
 			# store ensemble in dictionary
 			self._predicate_classifier_dict[predicate] = classifier_p_dict
 			self._predicate_data_dict[predicate] = data_p_dict
+			
+			# mark learned predicate
+			self._learned_predicates.append(predicate)
+	
+	def learnedPredicates(self):
+		return self._learned_predicates
 	
 	def isValidContext(self,behavior,modality):
-		if behavior == "look":
-			if modality == "color" or modality == "shape" or modality == "vgg":
+		if modality == "surf200":
+			return True # all contexts have surf
+		elif behavior == "look":
+			if modality == "hsvnorm4" or modality == "color" or modality == "shape" or modality == "vgg":
 				return True
 			else: 
 				return False
@@ -283,26 +364,29 @@ class ClassifierIJCAI(object):
 			
 	# input: the target object, the behavior, and a predicate
 	# output: the probability that the object matches the predicate		
-	def classify(self, object_id, behavior, predicate):
+	def classify(self, object_id, behaviors, predicate, selected_trial):
 		
 		# before doing anything, check whether we even have classifiers for the predicate
 		if predicate not in self._predicate_classifier_dict.keys():
 			# return negative result
+			print("[WARNING] no classifier available for predicate "+predicate)
 			return 0.0
 			
 			
 		# first, randomly pick which trial we're doing
 		num_available = self._num_trials_per_object
-		selected_trial = random.randint(1,num_available)
+		if selected_trial == -1:
+			selected_trial = random.randint(1,num_available)
 		
 		# next, find which contexts are available in that behavior
 		b_contexts = []
 		for context in self._contexts:
-			if behavior in context:
-				b_contexts.append(context)
+			for behavior in behaviors:
+				if behavior in context:
+					b_contexts.append(context)
 		
-		#print b_contexts
-		#print selected_trial
+		#print(b_contexts)
+		#print(selected_trial)
 		
 		# call each classifier
 		
@@ -327,9 +411,9 @@ class ClassifierIJCAI(object):
 			if len(self._pred_context_weights_dict) != 0:
 				context_weight = self._pred_context_weights_dict[predicate][context]
 				
-			#print context_weight
+			#print(context_weight)
 			
-			classlabel_distr += output[0]
+			classlabel_distr += context_weight*output[0]
 			#print("Prediction from context "+context+":\t"+str(output))
 		
 		# normalize so that output distribution sums up to 1.0
@@ -339,11 +423,11 @@ class ClassifierIJCAI(object):
 		#print("Final distribution over labels:\t"+str(classlabel_distr))
 		return classlabel_distr[1]
 	
-	def classifyMultiplePredicates(self, object_id, behavior, predicates):
+	def classifyMultiplePredicates(self, object_id, behavior, predicates, trial):
 		output_probs = []
 		
 		for p in predicates:
-			output_probs.append(self.classify(object_id,behavior,p))
+			output_probs.append(self.classify(object_id,behavior,p,trial))
 		return output_probs
 	
 		
@@ -351,51 +435,160 @@ def main(argv):
 		
 	datapath = "../data/ijcai2016"
 	behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
-	modalities = ["color","shape","vgg","effort","position","fingers","audio"]
+	modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
 
 	predicates = ['brown','green','blue','light','medium','heavy','glass','screws','beans','rice']
 	
 	# file that maps names to IDs
 	objects_ids_file = "../data/ijcai2016/object_list.csv"
-
-	# create oracle
-	T_oracle = TFTable()
-	print("All predicates:")
-	print(T_oracle.getAllPredicates())
-
-	classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
-	#print "Classifier created..."
 	
 	# some train parameters
-	num_train_objects = 24
+	num_train_objects = 28
 	num_trials_per_object = 5
-	
+
 	# how train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset)
-	num_cross_validation_tests = 5
+	num_cross_validation_tests = 10
+	
+	# how many total tests to do
+	num_object_split_tests = 32
+			
+	# precompute and store train and test set ids for each test
+	train_set_dict = dict()
+	test_set_dict = dict()
 	
 	
-	# get all object ids and shuffle them
+	
+	# create oracle
+	T_oracle = TFTable()
+	
+	
+	classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
+	
+	
+	
+	# get ids
 	object_ids = copy.deepcopy(classifier.getObjectIDs());
 	
-	random.seed(2)
-	random.shuffle(object_ids)
-	print(object_ids)
-
+	# set them in the oracle
+	classifier._T_oracle.setObjectIDs(object_ids)
 	
+	# filter predicates
+	print("All predicates:")
+	all_predicates = T_oracle.getAllPredicates()
+	print(str(all_predicates))
+	print("Num predicates: "+str(len(all_predicates)))
 	
+	# where to store the confusion matrices
+	pred_cm_dict = dict()
+	for pred in all_predicates:
+		cm_p = np.zeros( (2,2) )
+		pred_cm_dict[pred]=cm_p
 	
-	# pick random subset for train
-	train_object_ids = object_ids[0:num_train_objects]
-	print(train_object_ids)
-	print("size of train_object_ids: " + str(len(train_object_ids)))
-	print("size of object_ids: " + str(len(object_ids)))
+	# compute positive and negative counts
 	
-	# train classifier
-	classifier.trainClassifiers(train_object_ids,num_trials_per_object)
+	if num_object_split_tests == 32: # doing leave one out object test
+		object_ids = copy.deepcopy(classifier.getObjectIDs());
+		
+		for test in range(0,num_object_split_tests):
+			test_objects = [object_ids[test]]
+			train_objects = []
+			for obj in object_ids:
+				if obj != object_ids[test]:
+					train_objects.append(obj)
+			
+			train_set_dict[test]=train_objects
+			test_set_dict[test]=test_objects
+	else:
+		for test in range(0,num_object_split_tests):
+			# get all object ids and shuffle them
+			object_ids = copy.deepcopy(classifier.getObjectIDs());
+			random.seed(test)
+			random.shuffle(object_ids)
+			train_object_ids = object_ids[0:num_train_objects]
+			test_object_ids = object_ids[num_train_objects:len(object_ids)]
+			train_set_dict[test]=train_object_ids
+			test_set_dict[test]=test_object_ids
 	
-	# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
-	#classifier.performCrossValidation(5)
+	for test in range(0,num_object_split_tests):
+		
+		print("\n"+"TEST "+str(test)+"\n")
+		
+		# create classifier
+		classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
+		
+		# look up train and test objects for this test
+		train_object_ids = train_set_dict[test]
+		test_object_ids = test_set_dict[test]
+		
+		print("Train objects:\t"+str(train_object_ids))
+		print("Test objects:\t"+str(test_object_ids))
+		#print("size of train_object_ids: " + str(len(train_object_ids)))
+		#print("size of object_ids: " + str(len(object_ids)))
+		
+		# figure out which predicates are required for evaluating on the test objects -- there is no need to train unneeded ones
+		req_train_predicates = []
+		for pred in all_predicates:
+			for o in test_object_ids:
+				if classifier._T_oracle.hasLabel(pred,str(o)):
+					req_train_predicates.append(pred)
+					break;
+		print("# of required train predicates: "+str(len(req_train_predicates)))
+		print(req_train_predicates)
+		
+		
+		# train classifier
+		classifier.trainClassifiers(train_object_ids,num_trials_per_object,req_train_predicates)
+		
+		# predicates that are known
+		learned_predicates = classifier.learnedPredicates()
+		print("Known predicates:\t"+str(learned_predicates))
+		
+		# predicates that occur in test object set
+		test_predicates = []
+		for i in range(0,len(learned_predicates)):
+			for o in test_object_ids:
+				if classifier._T_oracle.hasLabel(learned_predicates[i],str(o)):
+					test_predicates.append(learned_predicates[i])
+					break;
+		print(test_predicates)
+		
+		
+		# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
+		#classifier.performCrossValidation(num_cross_validation_tests,test_predicates)
+		
+		# test
+		print("Test objects:")
+		print(test_object_ids)
+		
 	
+		
+		for o_test in test_object_ids:
+			print("test object:\t"+str(o_test)+"\t"+classifier.getObjectName(o_test))
+			
+			for p in range(0,len(test_predicates)):
+				pred = test_predicates[p]
+				if classifier._T_oracle.hasLabel(pred,str(o_test)):
+					print("\t\tpredicate: "+pred+":")
+					for t in range(1,num_trials_per_object+1):
+						probs_b = classifier.classifyMultiplePredicates(o_test,behaviors,[pred],t)
+						#print("\t\t"+str(probs_b))
+						actual = 1 if classifier.isPredicateTrue(pred,o_test) else 0
+						predicted = 0
+						if probs_b[0] > 0.5:
+							predicted = 1
+						print("\t\ttrial "+str(t)+":"+"\t"+str(actual)+"\t"+str(predicted))
+						
+						pred_cm_dict[pred][predicted][actual] = pred_cm_dict[pred][predicted][actual] + 1
+	
+	print("\n\nFinal Confusion Matrices:\n")
+	for pred in all_predicates:
+		cm_p = pred_cm_dict[pred]
+		#print(cm_p)
+		if np.sum(cm_p) > 0:
+			print(pred+","+str(classifier.computeKappa(cm_p)))
+		
+		#print(str(pred_cm_dict[pred]))
+		
 	# optional: reset random seed to something specific to this evaluation run (after cross-validation it is fixed)
 	#random.seed(235)
 	
