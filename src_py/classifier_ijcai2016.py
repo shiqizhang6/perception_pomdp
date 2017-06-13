@@ -158,11 +158,10 @@ class ClassifierIJCAI(object):
 		# SVM
 		#return svm.SVC(gamma=0.001, C=100, probability = learn_prob_model)
 	
-		return svm.SVC(kernel="poly",C=10,degree=2,probability = learn_prob_model)
-	
+		#return svm.SVC(kernel="poly",C=10,degree=2,probability = learn_prob_model)
 	
 		# decision tree
-		#return tree.DecisionTreeClassifier(criterion='gini', splitter='best',max_depth=None, min_samples_split=2, min_samples_leaf=4, min_weight_fraction_leaf=0.0, max_features=None, random_state=None, max_leaf_nodes=None, min_impurity_split=1e-07, class_weight=None, presort=False)
+		return tree.DecisionTreeClassifier(criterion='gini', splitter='best',max_depth=None, min_samples_split=2, min_samples_leaf=4, min_weight_fraction_leaf=0.0, max_features=None, random_state=None, max_leaf_nodes=None, min_impurity_split=1e-07, class_weight=None, presort=False)
 	
 	
 	def crossValidate(self,X,Y,num_tests):
@@ -437,34 +436,31 @@ def main(argv):
 	behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
 	modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
 
-	predicates = ['brown','green','blue','light','medium','heavy','glass','screws','beans','rice']
-	
 	# file that maps names to IDs
 	objects_ids_file = "../data/ijcai2016/object_list.csv"
 	
-	# some train parameters
+	# some train parameters -- only valid if num_object_split_tests is not 32
 	num_train_objects = 28
 	num_trials_per_object = 5
 
-	# how train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset)
+	# whether to do internal cross validation; if false, all contexts are treated equally at test time
+	perform_internal_cv = True
+
+	# how many train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset), which is used to estimate the reliability weights of each context
 	num_cross_validation_tests = 10
 	
-	# how many total tests to do
+	# how many total tests to do -- if 32, then this does object-based cross validation
 	num_object_split_tests = 32
 			
 	# precompute and store train and test set ids for each test
 	train_set_dict = dict()
 	test_set_dict = dict()
 	
-	
-	
 	# create oracle
 	T_oracle = TFTable()
 	
-	
+	# create classifier
 	classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
-	
-	
 	
 	# get ids
 	object_ids = copy.deepcopy(classifier.getObjectIDs());
@@ -554,7 +550,9 @@ def main(argv):
 		
 		
 		# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
-		#classifier.performCrossValidation(num_cross_validation_tests,test_predicates)
+		
+		if perform_internal_cv:
+			classifier.performCrossValidation(num_cross_validation_tests,test_predicates)
 		
 		# test
 		print("Test objects:")
@@ -580,7 +578,7 @@ def main(argv):
 						
 						pred_cm_dict[pred][predicted][actual] = pred_cm_dict[pred][predicted][actual] + 1
 	
-	print("\n\nFinal Confusion Matrices:\n")
+	print("\n\nFinal kappas:\n")
 	for pred in all_predicates:
 		cm_p = pred_cm_dict[pred]
 		#print(cm_p)
