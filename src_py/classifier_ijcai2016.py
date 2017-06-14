@@ -8,12 +8,15 @@ import sys
 import csv
 import copy
 
+import pprint
+import pickle
+
 # classifiers
 from sklearn import svm
 from sklearn import tree
 from sklearn.preprocessing import normalize
 
-from oracle_ijcai2016 import TFTable
+from oracle_full_ijcai2016 import TFTable
 
 class ClassifierIJCAI(object):
 	
@@ -164,6 +167,81 @@ class ClassifierIJCAI(object):
 		return tree.DecisionTreeClassifier(criterion='gini', splitter='best',max_depth=None, min_samples_split=2, min_samples_leaf=4, min_weight_fraction_leaf=0.0, max_features=None, random_state=None, max_leaf_nodes=None, min_impurity_split=1e-07, class_weight=None, presort=False)
 	
 	
+	
+	def crossValidateObjectBased(self, predicate, context):
+		
+		# confusion matrix
+		CM_total = np.zeros( (2,2) )
+		
+		# for each test object
+		for test_object in self._train_objects:
+			train_objects = []
+			for o in self._train_objects:
+				if o != test_object:
+					train_objects.append(o)
+			#print("\ttrain: "+str(train_objects)+"\ttest:"+str(test_object))
+			X_train = []
+			Y_train = []
+			
+			# create X and Y for train
+			num_train_positive = 0
+			num_train_negative = 0
+			for o_train in train_objects:
+				
+				# get class label
+				y_o = 0
+				if self.isPredicateTrue(predicate,o_train):
+					y_o = 1
+					num_train_positive += 1
+				else:
+					num_train_negative += 1
+				
+				# for each trial, make datapoint
+				for t in range(1,self._num_interaction_trials+1):
+					x_ot = self.getFeatures(context,o_train,t)
+					X_train.append(x_ot)
+					Y_train.append(y_o)
+			
+			#print("\t# datapoints: "+str(len(X_train)))
+	
+			# check that there are two classes
+			if num_train_positive == 0 or num_train_negative == 0:
+				return 0.5 # default weight
+					
+			# create test data
+			X_test = []
+			Y_test = []
+			y_t = 0
+			if self.isPredicateTrue(predicate,test_object):
+				y_t = 1 
+			for t in range(1,self._num_interaction_trials+1):
+				x_ot = self.getFeatures(context,test_object,t)
+				X_test.append(x_ot)
+				Y_test.append(y_t)
+			
+			#print("\t# test datapoints: "+str(len(X_test)))
+	
+			
+			# create and train classifier
+			classifier_t = self.createScikitClassifier(False)	
+			classifier_t.fit(X_train, Y_train)
+				
+			# test classifier
+			# for each test point
+			Y_est = classifier_t.predict(X_test)
+			
+			# confusion matrix
+			CM = np.zeros( (2,2) )
+		
+			for i in range(len(Y_est)):
+				actual = Y_test[i]
+				predicted = Y_est[i]
+				
+				CM[predicted][actual] = CM[predicted][actual] + 1
+				
+			CM_total = CM_total + CM
+		return CM_total
+	
 	def crossValidate(self,X,Y,num_tests):
 		scores = []
 		
@@ -226,10 +304,28 @@ class ClassifierIJCAI(object):
 		kappa = self.computeKappa(CM_total)
 
 		return kappa
-		  
+		
+	def getPredicateBehaviorObservatoinModel(self,predicate,behavior):
+		# confusion matrix
+		CM = np.zeros( (2,2) )
+		
+		b_contexts = []
+		for context in self._contexts:
+			if behavior in context:
+				b_contexts.append(context)
+		
+		for context in b_contexts:
+			CM_c = self._pred_context_cm_dict[predicate][context]
+			CM = CM + (self._pred_context_weights_dict[predicate][context] *CM_c)
+		return CM 
 	
 	def performCrossValidation(self, num_tests, test_predicates):
+		self._pred_context_cm_dict = dict()
+		
 		for predicate in test_predicates:
+			
+			self._pred_context_cm_dict[predicate] = dict()
+			
 			print("Cross-validating classifiers for "+predicate)
 			# this contains the context-specific classifier for the predicate
 			
@@ -244,12 +340,22 @@ class ClassifierIJCAI(object):
 				pred_context_weights = dict()
 				#print("Predicate = "+predicate)
 				for context in self._contexts:
-					[X,Y] = pred_data_dict[context]
+					# perform object-based cross validation
+					CM_ocv = self.crossValidateObjectBased(predicate,context)
+					kappa_ocv = self.computeKappa(CM_ocv)
+					
+					# store CM
+					self._pred_context_cm_dict[predicate][context] = CM_ocv
+					
+					#print(CM_ocv)
+					#print("Obj. cross validation for "+predicate+" and "+context+":\t"+str(kappa_ocv))
+					
+					#[X,Y] = pred_data_dict[context]
 					#print("Cross-validating predicate " + predicate + " and context "+context+" with " + str(len(X)) + " points")
-					kappa = self.crossValidate(X,Y,num_tests)
+					#kappa = self.crossValidate(X,Y,num_tests)
 				
 					# store the weight for that context and predicate
-					pred_context_weights[context]=kappa
+					pred_context_weights[context]=kappa_ocv
 					
 					if pred_context_weights[context] <= 0.0:
 						pred_context_weights[context] = 0.001
@@ -265,11 +371,15 @@ class ClassifierIJCAI(object):
 	# train_objects: a list of training objects
 	# num_interaction_trials:	how many datapoint per object, from 1 to 10
 	def trainClassifiers(self,train_objects,num_interaction_trials, train_predicates):
-		# for each predicate
-		
+
+			
 		# dictionary storing the ensemble of classifiers (one per context) for each predicate
 		self._predicate_classifier_dict = dict()
 		self._predicate_data_dict = dict()
+		
+		# store train objects and num interaction trials
+		self._train_objects = train_objects
+		self._num_interaction_trials = num_interaction_trials
 		
 		for predicate in train_predicates:
 			
@@ -447,7 +557,7 @@ def main(argv):
 	perform_internal_cv = True
 
 	# how many train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset), which is used to estimate the reliability weights of each context
-	num_cross_validation_tests = 10
+	num_cross_validation_tests = 3
 	
 	# how many total tests to do -- if 32, then this does object-based cross validation
 	num_object_split_tests = 32
@@ -458,6 +568,7 @@ def main(argv):
 	
 	# create oracle
 	T_oracle = TFTable()
+	T_oracle.loadFullAnnotations()
 	
 	# create classifier
 	classifier = ClassifierIJCAI(datapath,behaviors,modalities,T_oracle,objects_ids_file)
@@ -553,6 +664,14 @@ def main(argv):
 		
 		if perform_internal_cv:
 			classifier.performCrossValidation(num_cross_validation_tests,test_predicates)
+		
+		for predicate in test_predicates:
+			for behavior in behaviors:
+				CM_pb = classifier.getPredicateBehaviorObservatoinModel(predicate,behavior)
+				print(predicate+"\t"+behavior)
+				print(CM_pb)
+				
+		
 		
 		# test
 		print("Test objects:")

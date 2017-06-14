@@ -139,18 +139,27 @@ class ClassifierICRA(object):
 			Y_train = []
 			
 			# create X and Y for train
+			num_train_positive = 0
+			num_train_negative = 0
 			for o_train in train_objects:
 				
 				# get class label
 				y_o = 0
 				if self.isPredicateTrue(predicate,o_train):
 					y_o = 1
+					num_train_positive += 1
+				else:
+					num_train_negative += 1
 				
 				# for each trial, make datapoint
 				for t in range(1,self._num_interaction_trials+1):
 					x_ot = self.getFeatures(context,o_train,t)
 					X_train.append(x_ot)
 					Y_train.append(y_o)
+			
+			# check that there are two classes
+			if num_train_positive == 0 or num_train_negative == 0:
+				return 0.5 # default weight
 					
 			# create test data
 			X_test = []
