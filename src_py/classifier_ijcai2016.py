@@ -317,6 +317,10 @@ class ClassifierIJCAI(object):
 		for context in b_contexts:
 			CM_c = self._pred_context_cm_dict[predicate][context]
 			CM = CM + (self._pred_context_weights_dict[predicate][context] *CM_c)
+		
+		cm_sum = np.sum(CM)
+		#print(cm_sum)	
+		CM = CM / cm_sum
 		return CM 
 	
 	def performCrossValidation(self, num_tests, test_predicates):
@@ -359,8 +363,8 @@ class ClassifierIJCAI(object):
 					
 					if pred_context_weights[context] <= 0.0:
 						pred_context_weights[context] = 0.001
-					else:
-						print("\t"+context+":\t"+str(pred_context_weights[context]))
+					#else:
+					#	print("\t"+context+":\t"+str(pred_context_weights[context]))
 				
 				self._pred_context_weights_dict[predicate] = pred_context_weights
 			else:
@@ -591,8 +595,7 @@ def main(argv):
 		cm_p = np.zeros( (2,2) )
 		pred_cm_dict[pred]=cm_p
 	
-	# compute positive and negative counts
-	
+	# compute train and test object sets for all tests
 	if num_object_split_tests == 32: # doing leave one out object test
 		object_ids = copy.deepcopy(classifier.getObjectIDs());
 		
@@ -616,6 +619,7 @@ def main(argv):
 			train_set_dict[test]=train_object_ids
 			test_set_dict[test]=test_object_ids
 	
+	# for each fold...
 	for test in range(0,num_object_split_tests):
 		
 		print("\n"+"TEST "+str(test)+"\n")
@@ -656,36 +660,37 @@ def main(argv):
 			for o in test_object_ids:
 				if classifier._T_oracle.hasLabel(learned_predicates[i],str(o)):
 					test_predicates.append(learned_predicates[i])
-					break;
-		print(test_predicates)
-		
+					break;		
 		
 		# perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
+		# this steps is needed to get the observation model for each behavior and predicate pair
 		
 		if perform_internal_cv:
 			classifier.performCrossValidation(num_cross_validation_tests,test_predicates)
 		
-		for predicate in test_predicates:
-			for behavior in behaviors:
-				CM_pb = classifier.getPredicateBehaviorObservatoinModel(predicate,behavior)
-				print(predicate+"\t"+behavior)
-				print(CM_pb)
+			# example of how to get 2x2 observation model matrix for each behavior-predicate pair
+			for predicate in test_predicates:
+				for behavior in behaviors:
+					CM_pb = classifier.getPredicateBehaviorObservatoinModel(predicate,behavior)
+					#print(predicate+"\t"+behavior)
+					#print(CM_pb)
 				
-		
-		
-		# test
+		# save classifier
+		# TO DO
+
+
+		# test on remaining objects
 		print("Test objects:")
 		print(test_object_ids)
-		
 	
-		
 		for o_test in test_object_ids:
 			print("test object:\t"+str(o_test)+"\t"+classifier.getObjectName(o_test))
 			
+			# for all predicates, if a label is available for this test object, then perform classification and record result
 			for p in range(0,len(test_predicates)):
 				pred = test_predicates[p]
 				if classifier._T_oracle.hasLabel(pred,str(o_test)):
-					print("\t\tpredicate: "+pred+":")
+					#print("\t\tpredicate: "+pred+":")
 					for t in range(1,num_trials_per_object+1):
 						probs_b = classifier.classifyMultiplePredicates(o_test,behaviors,[pred],t)
 						#print("\t\t"+str(probs_b))
@@ -693,10 +698,28 @@ def main(argv):
 						predicted = 0
 						if probs_b[0] > 0.5:
 							predicted = 1
-						print("\t\ttrial "+str(t)+":"+"\t"+str(actual)+"\t"+str(predicted))
+						#print("\t\ttrial "+str(t)+":"+"\t"+str(actual)+"\t"+str(predicted))
 						
 						pred_cm_dict[pred][predicted][actual] = pred_cm_dict[pred][predicted][actual] + 1
-	
+			
+			
+			# example of how to get prob. estimates for a set of a predicates, an object, and a behavior:
+			query_predicates = ["medium-sized", "tall", "white"]
+			query_behavior = "look"
+			query_trial_index = 1 # 1-5, as each behavior was executed 5 times on each object
+			
+			query_pred_probs = classifier.classifyMultiplePredicates(o_test,query_behavior,query_predicates,query_trial_index)
+			print("\nExample query predicates and probabilities:")
+			print(query_predicates)
+			print(query_pred_probs)
+			
+		# print current results
+		#for pred in all_predicates:
+		#	cm_p = pred_cm_dict[pred]
+		#	if np.sum(cm_p) > 0:
+		#		print(pred+","+str(classifier.computeKappa(cm_p)))
+		
+			
 	print("\n\nFinal kappas:\n")
 	for pred in all_predicates:
 		cm_p = pred_cm_dict[pred]
@@ -704,29 +727,7 @@ def main(argv):
 		if np.sum(cm_p) > 0:
 			print(pred+","+str(classifier.computeKappa(cm_p)))
 		
-		#print(str(pred_cm_dict[pred]))
 		
-	# optional: reset random seed to something specific to this evaluation run (after cross-validation it is fixed)
-	#random.seed(235)
-	
-	# test classifying an object based on a single behavior and 1 predicate
-	#target_object = object_ids[num_train_objects+1]
-	#behavior = "look"
-	#query_predicate = "blue"
-	
-	#print("\nTarget object: "+target_object+"\nbehavior: "+behavior+"\npredicate: "+query_predicate)
-	
-	#output_prob = classifier.classify(target_object,behavior,query_predicate)
-	
-	#print("Predicate probability score:\t"+str(output_prob))
-	
-	# test classifying multiple predicates using a single behavior
-	#query_predicate_list = ['light','medium','heavy']
-	#print("\nPredicate list query:\t"+str(query_predicate_list))
-	
-	#output_probs = classifier.classifyMultiplePredicates(target_object,behavior,query_predicate_list)
-	#print("Output probs.:\t"+str(output_probs))
-	
 	
 if __name__ == "__main__":
     main(sys.argv)

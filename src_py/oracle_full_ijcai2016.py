@@ -37,7 +37,7 @@ class TFTable:
         print("Loaded pickle.")
         
         predicates = self._predicates_annotated
-        print(predicates)
+        #print(predicates)
         
         self.class_label_dict = dict()
         for file_obj_id in range(0,32):
@@ -109,9 +109,6 @@ class TFTable:
                            else:
                                 pred_counts_neg[p] = pred_counts_neg[p] + 1  
         
-        #print(pred_counts_pos)
-        #print(pred_counts_neg)
-        
         pred_filtered = []
         
         for p in range(0,len(self.pred)):
@@ -120,8 +117,3 @@ class TFTable:
 				
         
         return pred_filtered
-# t=TFTable()
-# pred = t.getAllPredicates()
-# for id in np.arange(1,33):
-#     for p in pred:
-#         print p,id,t.getTorF(p,str(id))
