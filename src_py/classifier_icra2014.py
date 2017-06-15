@@ -382,9 +382,10 @@ class ClassifierICRA(object):
 		max_context_score = 0.0
 		for context in self._contexts:
 			if behavior in context:
-				context_weight = self._pred_context_weights_dict[predicate][context]
-				if context_weight > max_context_score:
-					max_context_score = context_weight
+				if predicate in self._pred_context_weights_dict:
+					context_weight = self._pred_context_weights_dict[predicate][context]
+					if context_weight > max_context_score:
+						max_context_score = context_weight
 		return max_context_score
 	
 	def classifyMultipleBehaviors(self, object_id, behaviors, predicate, trial_index):
