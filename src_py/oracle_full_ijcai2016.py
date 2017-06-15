@@ -11,13 +11,13 @@ import pickle
  the getAllPredicates function return all predicates as a list (105 int total)'''
 
 class TFTable:
-    def __init__(self):
+    def __init__(self,min_num_examples_per_class):
         table_path = "../data/ijcai2016/labels.csv"
         self.df = pd.read_csv(table_path,index_col=0)
         self.missing_as_negative = False	
         self.obj_ids = []
         self.annotations = None
-        
+        self._min_num_examples_per_class = min_num_examples_per_class
         #self.predicates_annotated = pd.read_csv("../data/ijcai2016/test_full.csv",index_col=0)
         
         #print(self.predicates_annotated)
@@ -93,8 +93,8 @@ class TFTable:
         self.pred = pred_candidates
         
 		# for each predicate see if min number of examples is met
-        min_num_positive = 12
-        min_num_negative = 12
+        min_num_positive = self._min_num_examples_per_class
+        min_num_negative = self._min_num_examples_per_class
 		
         if len(self.obj_ids) == 0:
             return self.pred
