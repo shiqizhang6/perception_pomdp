@@ -559,7 +559,7 @@ def main(argv):
 	
 	# whether to load saved classifiers intead of training them
 	# this should only be true if the procedure was first run once and the classifiers for all train-test splits were saved
-	load_classifiers = False
+	load_classifiers = True
 	
 	# some train parameters -- only valid if num_object_split_tests is not 32
 	num_train_objects = 28
