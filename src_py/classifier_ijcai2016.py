@@ -559,7 +559,7 @@ def main(argv):
 	
 	# whether to load saved classifiers intead of training them
 	# this should only be true if the procedure was first run once and the classifiers for all train-test splits were saved
-	load_classifiers = False
+	load_classifiers = True
 	
 	# some train parameters -- only valid if num_object_split_tests is not 32
 	num_train_objects = 28
@@ -729,7 +729,7 @@ def main(argv):
 			
 			# example of how to get an observation model for a given predicate and behavior pair
 			# note that the 2 x 2 confusion matrix is already normalized so that its entries sum up to 1.0
-			CM_pb = classifier.getPredicateBehaviorObservatoinModel("medium-sized","look")
+			CM_pb = classifier.getPredicateBehaviorObservatoinModel("water","look")
 			print("\nObservation model for sample predicate and behavior:")
 			print(CM_pb)
 			
