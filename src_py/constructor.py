@@ -113,15 +113,12 @@ class Model:
         # the action names must match the action names in confusion matrices (csv file)
         self._actions.append(Action(False, 'look', None))
         self._actions.append(Action(False, 'grasp', None))
-        self._actions.append(Action(False, 'lift_slow', None))
+        self._actions.append(Action(False, 'lift', None))
         self._actions.append(Action(False, 'hold', None))
-        self._actions.append(Action(False, 'shake', None))
-        self._actions.append(Action(False, 'high_velocity_shake', None))
-        self._actions.append(Action(False, 'low_drop', None))
-        self._actions.append(Action(False, 'tap', None))
-        self._actions.append(Action(False, 'poke', None))
+        self._actions.append(Action(False, 'lower', None))
+        self._actions.append(Action(False, 'drop', None))
         self._actions.append(Action(False, 'push', None))
-        self._actions.append(Action(False, 'crush', None))
+        self._actions.append(Action(False, 'press', None))
 
         self._actions.append(Action(False, 'ask', None))
         self._actions.append(Action(False, 'reinit', None))
@@ -172,11 +169,11 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
-            elif a_val._name == 'ask' or a_val._name == 'crush':
+            elif a_val._name == 'ask' or a_val._name == 'press':
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, s_idx] = 1.0
 
-            elif a_val._name == 'tap' or a_val._name == 'poke' or a_val._name == 'push':
+            elif a_val._name == 'push':
                 success_push = 0.9
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
@@ -196,7 +193,7 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
-            elif a_val._name == 'lift_slow':
+            elif a_val._name == 'lift':
                 success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
@@ -218,29 +215,17 @@ class Model:
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
-            # elif a_val._name == 'lower':
-            #     success_push = 0.99
-            #     for s_idx, s_val in enumerate(self._states):
-            #         if s_val._term == False and s_val._s_index == 4:
-            #             tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
-            #             self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-            #             self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-            #         else:
-            #             self._trans[a_idx, s_idx, s_idx] = 1.0
-
-
-            elif a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
-                success_push = 0.95
+            elif a_val._name == 'lower':
+                success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = 1.0 - success_push
-                        self._trans[a_idx, s_idx, s_idx] = success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
-
-            elif a_val._name == 'low_drop':
+            elif a_val._name == 'drop':
                 success_push = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
@@ -259,6 +244,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
                     else:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
+
             elif a_val._term == True:
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
@@ -303,11 +289,13 @@ class Model:
                             (1.0 - self._high)/(len(self._observations)-2.0)
                         continue 
 
+                    # actions of 'look' and 'press' only make sense when it is taken in state s0 (init state)
+                    # otherwise, it won't produce any information
                     if a_val._name == 'look' or a_val._name == 'press':
                         if s_val._s_index != 1:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    elif a_val._name == 'push' or a_val._name == 'poke' or a_val._name == 'tap':
+                    elif a_val._name == 'push':
                         if s_val._s_index != 5:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
@@ -315,7 +303,7 @@ class Model:
                         if s_val._s_index != 2:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    elif a_val._name == 'lift_slow':
+                    elif a_val._name == 'lift':
                         if s_val._s_index != 3:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
@@ -323,11 +311,11 @@ class Model:
                         if s_val._s_index != 4:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
-                    # elif a_val._name == 'lower':
-                    #     if s_val._s_index != 5:
-                    #         self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
-                    #         continue
-                    elif a_val._name == 'low_drop' or a_val._name == 'shake' or a_val._name == 'high_velocity_shake':
+                    elif a_val._name == 'lower':
+                        if s_val._s_index != 5:
+                            self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
+                            continue
+                    elif a_val._name == 'drop':
                         if s_val._s_index != 5:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
@@ -361,23 +349,18 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = -0.5
                 elif a_val._term == False and a_val._name == 'grasp':
                     self._reward_fun[a_idx, s_idx] = -4.5
-                elif a_val._term == False and a_val._name == 'lift_slow':
+                elif a_val._term == False and a_val._name == 'lift':
                     self._reward_fun[a_idx, s_idx] = -2.6              
                 elif a_val._term == False and a_val._name == 'hold':
                     self._reward_fun[a_idx, s_idx] = -1.0
-                elif a_val._term == False and a_val._name == 'shake':
-                    self._reward_fun[a_idx, s_idx] = -3.8
-                elif a_val._term == False and a_val._name == 'high_velocity_shake':
-                    self._reward_fun[a_idx, s_idx] = -4.1
-                elif a_val._term == False and a_val._name == 'low_drop':
+                # making up a cost for this lower action -- actual cost needs to be acquired from Jivko
+                elif a_val._term == False and a_val._name == 'lower':
+                    self._reward_fun[a_idx, s_idx] = -1.0                    
+                elif a_val._term == False and a_val._name == 'drop':
                     self._reward_fun[a_idx, s_idx] = -2.6
-                elif a_val._term == False and a_val._name == 'tap':
-                    self._reward_fun[a_idx, s_idx] = -4.2
-                elif a_val._term == False and a_val._name == 'poke':
-                    self._reward_fun[a_idx, s_idx] = -4.1
                 elif a_val._term == False and a_val._name == 'push':
                     self._reward_fun[a_idx, s_idx] = -4.5
-                elif a_val._term == False and a_val._name == 'crush':
+                elif a_val._term == False and a_val._name == 'press':
                     self._reward_fun[a_idx, s_idx] = -5.2
 
                 elif a_val._prop_values == s_val._prop_values:
