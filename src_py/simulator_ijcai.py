@@ -28,7 +28,8 @@ class Simulator(object):
         self._content_values = ['glass','screws','beans','rice']
 
         self._action_cnt = 0
-        self._predefined_action_sequence = [0, 1, 2, 3, 4, 6]
+        # self._predefined_action_sequence = [0, 1, 2, 3, 4, 5]
+        self._predefined_action_sequence = [0, 7, 1, 2, 3, 4, 5]
 
     def train_classifier(self):
 
@@ -238,7 +239,8 @@ class Simulator(object):
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
         b = self.init_belief()
-        reward = 0
+        trial_reward = 0
+        action_cost = 0
 
         while True:
 
@@ -268,9 +270,10 @@ class Simulator(object):
             a = self._model._actions[a_idx]
             print('action selected (' + planner + '): ' + a._name)
 
-            reward += self.get_reward(a_idx, s_idx)
+            trial_reward += self.get_reward(a_idx, s_idx)
 
             if a._term is True: 
+            	action_cost = trial_reward - self.get_reward(a_idx, s_idx)
                 break
 
             [s_idx, s] = self.get_next_state(a_idx, s_idx)
@@ -284,7 +287,7 @@ class Simulator(object):
             print('observation made: ' + o._name + '  probability: ' + str(o_prob))
             b = self.update(a_idx, o_idx, b)
 
-        return reward
+        return trial_reward, action_cost
 
 def main(argv):
 
@@ -292,21 +295,24 @@ def main(argv):
     # a simple case that handcode the object properties
     # object_prop_names = ['heavy', 'blue', 'beans']
 
-    num_trials = 3
+    num_trials = 100
     overall_reward = 0
+    overall_action_cost = 0
+    success_trials = 0
     # simulator_for_classifier = Simulator()
     # classifier = simulator_for_classifier.train_classifier()
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', 'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', 'can', 'full', 'water', 'narrow', 'hollow', 'top', 'plastic', 'white', 'empty', 'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', 'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
     for i in range(num_trials): 
+    	print('Trial: ' + str(i) + '/' + str(num_trials))
 
         # the user can ask about at most 3 predicates
-        query_length = random.randrange(1, 3)
+        query_length = random.randrange(3, 4)
         request_prop_names = random.sample(predicates, query_length)
 
         # we use totally 32 objects, after filtering out the ones with little training data
-        test_object_index = random.randrange(0, 32)
+        test_object_index = random.randrange(1, 33)
 
         print('request_prop_names: ', request_prop_names)
         model = Model(0.99, request_prop_names, 0.9, -90.0, test_object_index)
@@ -332,12 +338,14 @@ def main(argv):
         print('generating model file "' + model_name + '"')
         model.write_to_file(model_name)
 
-        planner = 'pomdp'
+        # planner = 'pomdp'
+        planner = 'predefined'
 
         if planner == 'pomdp':
 
             policy_name = 'output.policy'
             appl = '/home/szhang/software/appl/appl-0.96/bin/pomdpsol'
+            appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
             timeout = 2
             dir_path = os.path.dirname(os.path.realpath(__file__))
             print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
@@ -357,11 +365,15 @@ def main(argv):
             sys.exit('planner selection error')
 
 
-        reward = simulator.run(planner, request_prop_names, test_object_index)
-        overall_reward += reward
-        print 'reward: ' + str(reward) + '\n'
+        trial_reward, action_cost = simulator.run(planner, request_prop_names, test_object_index)
+        overall_reward += trial_reward
+        overall_action_cost += action_cost
+        print 'reward: ' + str(trial_reward) + '\n'
+        success_trials += trial_reward - action_cost > 0
 
     print('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))
+    print('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))
+    print('success rate: ' + str(float(success_trials)/num_trials))
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -315,7 +315,7 @@ class Model:
                 train_objects_ids.append(obj)
         
         # where to load the classifier
-        classifier_file_name = "pomdp_classifiers/classifier_test"+str(test_object_index)+".pkl"
+        classifier_file_name = "pomdp_classifiers/classifier_test"+str(test_object_index-1)+".pkl"
 
         # load classifier
         pkl_load_classifier_file = open(classifier_file_name, 'rb')
