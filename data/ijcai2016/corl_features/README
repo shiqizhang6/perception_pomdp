@@ -1,0 +1,26 @@
+We cross-validated on a per-object basis to select the best SVM kernel as well as the best contexts,
+using full annotations.
+
+For the CoRL submissions on object identification and retrieval, we used linear SVM's at the context level.
+
+The following contexts were considered in the submitted papers, though I have created files representing alternative
+contexts as well (different ways of computing audio (i.e. the poorly named 'corl-audio'), rbg and hsv features,
+and surf features per behavior (e.g. 'push-surf').
+
+drop_audio
+drop_haptics
+grasp_audio
+grasp_haptics
+hold_audio
+hold_haptics
+lift_audio
+lift_haptics
+look_color
+look_fpfh
+look_fc7
+lower_audio
+lower_haptics
+press_audio
+press_haptics
+push_audio
+push_haptics
