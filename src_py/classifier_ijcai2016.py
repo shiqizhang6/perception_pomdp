@@ -84,7 +84,7 @@ class ClassifierIJCAI(object):
 		self._context_db_dict = dict()
 		
 		for context in self._contexts:
-			context_filename = self._path+"/sensorimotor_features/"+context+".txt"
+			context_filename = self._path+"/"+context+".txt"
 			
 			# count how many datapoint we've seen with each object
 			object_trial_count_dict = dict()
@@ -102,27 +102,13 @@ class ClassifierIJCAI(object):
 			with open(context_filename, 'r') as f:
 				reader = csv.reader(f)
 				for row in reader:
-					if context == "look_vgg":
-						obj = row[0]
-						obj = obj[5:len(obj)-6]
-						#print(obj)	
-						int_id_o = string_to_int_id_dict[obj]
-						#print(int_id_o)
+					
+					obj = int(row[0])
+					features = row[1:len(row)]
+					object_trial_count_dict[obj] += 1
 						
-						object_trial_count_dict[int_id_o] += 1
-						
-						
-						features = row[1:len(row)]
-						#print(features)
-						key = str(int_id_o)+"_"+str(object_trial_count_dict[int_id_o])
-						data_dict[key] = features
-					else:
-						obj = int(row[0])
-						features = row[1:len(row)]
-						object_trial_count_dict[obj] += 1
-						
-						key = str(obj)+"_"+str(object_trial_count_dict[obj])
-						data_dict[key] = features
+					key = str(obj)+"_"+str(object_trial_count_dict[obj])
+					data_dict[key] = features
 					
 			
 			self._context_db_dict[context] = data_dict
@@ -458,10 +444,10 @@ class ClassifierIJCAI(object):
 		return self._learned_predicates
 	
 	def isValidContext(self,behavior,modality):
-		if modality == "surf200":
+		if modality == "surf":
 			return True # all contexts have surf
 		elif behavior == "look":
-			if modality == "hsvnorm4" or modality == "color" or modality == "shape" or modality == "vgg":
+			if modality == "rgb" or modality == "color" or modality == "hsv" or modality == "fc7" or modality == "fpfh" or modality == "surf":
 				return True
 			else: 
 				return False
@@ -470,7 +456,7 @@ class ClassifierIJCAI(object):
 				return True
 			else:
 				return False
-		elif modality == "effort" or modality == "audio" or modality == "position":
+		elif modality == "haptics" or modality == "audio" or modality == "corl-audio":
 			return True
 		else:
 			return False
@@ -547,9 +533,10 @@ class ClassifierIJCAI(object):
 def main(argv):
 		
 		
-	datapath = "../data/ijcai2016"
+	datapath = "../data/ijcai2016/corl_features"
 	behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
-	modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
+	modalities = ["rgb","hsv","fc7","fpfh","color","surf","haptics","corl-audio"]
+	#modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
 	
 	# minumum number of positive and negative examples needed for a predicate to be included in this experiment
 	min_num_examples_per_class = 5 # in the actual experiment, this should be 4 or 5 to include more predicates; when doing a quick test, you can set it to 14 or 15 in which case only 3 predicates are valid
@@ -559,7 +546,7 @@ def main(argv):
 	
 	# whether to load saved classifiers intead of training them
 	# this should only be true if the procedure was first run once and the classifiers for all train-test splits were saved
-	load_classifiers = True
+	load_classifiers = False
 	
 	# some train parameters -- only valid if num_object_split_tests is not 32
 	num_train_objects = 28
