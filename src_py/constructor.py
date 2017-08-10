@@ -261,9 +261,14 @@ class Model:
         else:
             print("First time requesting classifier for test object index: ", test_object_index, " -- loading now")
 
-        datapath = "../data/ijcai2016"
+        # # parameters from Jivko, now replaced by these from Jessee
+        # datapath = "../data/ijcai2016"
+        # behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
+        # modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
+
+        datapath = "../data/ijcai2016/corl_features"
         behaviors = ["look","grasp","lift","hold","lower","drop","push","press"]
-        modalities = ["color","hsvnorm4","vgg","shape","effort","position","audio","surf200"]
+        modalities = ["rgb","hsv","fc7","fpfh","color","surf","haptics","corl-audio"]
         
         # minumum number of positive and negative examples needed for a predicate to be included in this experiment
         min_num_examples_per_class = 5 # in the actual experiment, this should be 4 or 5 to include more predicates; when doing a quick test, you can set it to 14 or 15 in which case only 3 predicates are valid
@@ -271,9 +276,9 @@ class Model:
         # file that maps names to IDs
         objects_ids_file = "../data/ijcai2016/object_list.csv"
         
-        # whether to load saved classifiers intead of training them
+        # whether to load saved classifiers instead of training them
         # this should only be true if the procedure was first run once and the classifiers for all train-test splits were saved
-        load_classifiers = True
+        load_classifiers = False
         
         # some train parameters -- only valid if num_object_split_tests is not 32
         num_train_objects = 28
