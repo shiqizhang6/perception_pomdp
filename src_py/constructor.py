@@ -179,7 +179,7 @@ class Model:
                     self._trans[a_idx, s_idx, s_idx] = 1.0
 
             elif a_val._name == 'push':
-                success_push = 0.9
+                success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
@@ -189,7 +189,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
             elif a_val._name == 'grasp':
-                success_push = 0.95
+                success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
                         tmp_s_idx = self.get_state_index(False, 2, s_val._prop_values)
@@ -199,7 +199,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
             elif a_val._name == 'lift':
-                success_push = 0.95
+                success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
                         tmp_s_idx = self.get_state_index(False, 3, s_val._prop_values)
@@ -231,7 +231,7 @@ class Model:
                         self._trans[a_idx, s_idx, s_idx] = 1.0
 
             elif a_val._name == 'drop':
-                success_push = 0.95
+                success_push = 0.99
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
@@ -312,7 +312,7 @@ class Model:
         
         # filter predicates
         all_predicates = T_oracle.getAllPredicates()
-        print("All predicates:", str(all_predicates))
+        # print("All predicates:", str(all_predicates))
 
         train_objects_ids = []
         for obj in object_ids:
@@ -449,9 +449,9 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = -5.2
 
                 elif a_val._prop_values == s_val._prop_values:
-                    self._reward_fun[a_idx, s_idx] = 100.0
+                    self._reward_fun[a_idx, s_idx] = 200.0
                 else:
-                    self._reward_fun[a_idx, s_idx] = -100.0
+                    self._reward_fun[a_idx, s_idx] = -200.0
 
     def write_to_file(self, path):
         

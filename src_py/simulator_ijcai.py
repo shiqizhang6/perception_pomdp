@@ -31,58 +31,6 @@ class Simulator(object):
         # self._predefined_action_sequence = [0, 1, 2, 3, 4, 5]
         self._predefined_action_sequence = [0, 7, 1, 2, 3, 4, 5]
 
-    def train_classifier(self):
-
-        datapath = "../data/icra2014"
-        behaviors = ["look","grasp","lift_slow","hold","shake","high_velocity_shake","low_drop","tap","push","poke","crush"]
-        modalities = ["color","patch","proprioception","audio"]
-
-        predicates = self._color_values + self._weight_values + self._content_values
-
-
-        classifier = ClassifierICRA(datapath,behaviors,modalities,predicates)
-        print "Classifier created..."
-        
-        # some train parameters
-        num_train_objects = 24
-        num_trials_per_object = 10
-        
-        # how train-test splits to use when doing internal cross-validation (i.e., cross-validation on train dataset)
-        num_cross_validation_tests = 5
-        
-        
-        # get all object ids and shuffle them
-        object_ids = copy.deepcopy(classifier.getObjectIDs());
-        
-        random.seed(1)
-        random.shuffle(object_ids)
-        #print object_ids
-
-        
-        # do it again to check that the random seed shuffles the same way
-        #object_ids2 = classifier.getObjectIDs();
-        #random.seed(1)
-        #random.shuffle(object_ids2)
-        #print object_ids2
-        
-        
-        # pick random subset for train
-        train_object_ids = object_ids[0:num_train_objects]
-        #print train_object_ids
-        print("size of train_object_ids: " + str(len(train_object_ids)))
-        print("size of object_ids: " + str(len(object_ids)))
-        
-        # train classifier
-        classifier.trainClassifiers(train_object_ids,num_trials_per_object)
-        
-        # perform cross validation to figure out context specific weights for each predicate (i.e., the robot should come up with a number for each sensorimotor context that encodes how good that context is for the predicate
-        classifier.performCrossValidation(5)
-        
-        # optional: reset random seed to something specific to this evaluation run (after cross-validation it is fixed)
-        random.seed(235)
-        
-        return classifier
-
     def init_state(self):
 
 
@@ -121,14 +69,18 @@ class Simulator(object):
 
     def observe_real_ijcai(self, s_idx, a_idx, request_prop_names, test_object_index): 
 
-        print('Making an observation... ')
+        #print('Making an observation... ')
         query_behavior_in_list = self._model.get_action_name(a_idx)
+
+        if query_behavior_in_list == 'ask':
+            return self.observe_sim(s_idx, a_idx)
+
         query_trial_index = random.randrange(1, 5)
 
-        print('test_object_index: ', test_object_index)
-        print('query_behavior_in_list: ', query_behavior_in_list)
-        print('request_prop_names: ', request_prop_names)
-        print('query_trial_index: ', query_trial_index)
+        print('test_object_index: ' + str(test_object_index))
+        print('query_behavior_in_list: ' + str(query_behavior_in_list))
+        #print('request_prop_names: ' + str(request_prop_names))
+        #print('query_trial_index: ' + str(query_trial_index))
 
         query_pred_probs = self._model._classifiers[test_object_index].classifyMultiplePredicates(test_object_index, query_behavior_in_list, request_prop_names, query_trial_index)
 
@@ -286,47 +238,49 @@ class Simulator(object):
 
             print('observation made: ' + o._name + '  probability: ' + str(o_prob))
             b = self.update(a_idx, o_idx, b)
+            print("Belief: " + str(["%0.2f" % i for i in b]))
 
         return trial_reward, action_cost
 
 def main(argv):
 
     print('initializing model and solver')
-    # a simple case that handcode the object properties
-    # object_prop_names = ['heavy', 'blue', 'beans']
 
     num_trials = 100
     overall_reward = 0
     overall_action_cost = 0
     success_trials = 0
-    # simulator_for_classifier = Simulator()
-    # classifier = simulator_for_classifier.train_classifier()
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', 'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', 'can', 'full', 'water', 'narrow', 'hollow', 'top', 'plastic', 'white', 'empty', 'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', 'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
     for i in range(num_trials): 
+
+        print("\n##################### starting a new trial ######################\n")
+
     	print('Trial: ' + str(i) + '/' + str(num_trials))
 
         # the user can ask about at most 3 predicates
-        query_length = random.randrange(3, 4)
+        query_length = random.randrange(2, 3)
         request_prop_names = random.sample(predicates, query_length)
+
+        # request_prop_names = ['bright', 'half-full']
 
         # we use totally 32 objects, after filtering out the ones with little training data
         test_object_index = random.randrange(1, 33)
 
-        print('request_prop_names: ', request_prop_names)
-        model = Model(0.99, request_prop_names, 0.9, -90.0, test_object_index)
+        print('request_prop_names: ' + str(request_prop_names))
+        model = Model(0.99, request_prop_names, 0.8, -150.0, test_object_index)
         model.write_to_file('model.pomdp')
 
         print 'Predicates: ', request_prop_names
-        for p in request_prop_names: 
-            print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+        # for p in request_prop_names: 
+        #     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
 
         object_prop_names = []
         for p in predicates:
             if model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)):
                 object_prop_names.append(p)
-        print 'object_prop_names: ', object_prop_names
+        # print 'object_prop_names: ', object_prop_names
 
         # request_prop_names_random = [random.choice(simulator_for_classifier._weight_values), \
         #                            random.choice(simulator_for_classifier._color_values), \
@@ -338,14 +292,14 @@ def main(argv):
         print('generating model file "' + model_name + '"')
         model.write_to_file(model_name)
 
-        # planner = 'pomdp'
-        planner = 'predefined'
+        planner = 'pomdp'
+        # planner = 'predefined'
 
         if planner == 'pomdp':
 
             policy_name = 'output.policy'
-            appl = '/home/szhang/software/appl/appl-0.96/bin/pomdpsol'
-            appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+            appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+            # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
             timeout = 2
             dir_path = os.path.dirname(os.path.realpath(__file__))
             print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
