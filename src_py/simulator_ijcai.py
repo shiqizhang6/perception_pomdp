@@ -77,8 +77,8 @@ class Simulator(object):
 
         query_trial_index = random.randrange(1, 5)
 
-        print('test_object_index: ' + str(test_object_index))
-        print('query_behavior_in_list: ' + str(query_behavior_in_list))
+        # print('test_object_index: ' + str(test_object_index))
+        # print('query_behavior_in_list: ' + str(query_behavior_in_list))
         #print('request_prop_names: ' + str(request_prop_names))
         #print('query_trial_index: ' + str(query_trial_index))
 
@@ -86,7 +86,7 @@ class Simulator(object):
 
         print("\nObservation predicates and probabilities:")
         print(request_prop_names)
-        print(query_pred_probs)
+        # print(query_pred_probs)
 
         obs_name = 'p'
         for prob in query_pred_probs:
@@ -196,6 +196,7 @@ class Simulator(object):
 
         while True:
 
+            # select the next action
             if planner == 'pomdp':
                 a_idx = self._policy.select_action(b)
 
@@ -222,21 +223,31 @@ class Simulator(object):
             a = self._model._actions[a_idx]
             print('action selected (' + planner + '): ' + a._name)
 
-            trial_reward += self.get_reward(a_idx, s_idx)
+            # computing reward: current state and selected action
+            reward = self.get_reward(a_idx, s_idx)
+            trial_reward += reward
+            
 
-            if a._term is True: 
-            	action_cost = trial_reward - self.get_reward(a_idx, s_idx)
+            # state transition
+            [s_idx, s] = self.get_next_state(a_idx, s_idx)
+            print('resulting state: ' + s._name)
+
+            # compute accumulated reward
+            if s._term is True: 
+                action_cost = trial_reward - reward
                 break
 
-            [s_idx, s] = self.get_next_state(a_idx, s_idx)
-            print('current state: ' + s._name)
-
-
-            # [o_idx, o, o_prob] = self.observe_sim(s_idx, a_idx)
-            # [o_idx, o, o_prob] = self.observe_real(s_idx, a_idx)
-            [o_idx, o, o_prob] = self.observe_real_ijcai(s_idx, a_idx, request_prop_names, test_object_index)
+            # make observation
+            # if an action (look, grasp, etc) is unsuccessful, one will end up with no state change and a 'na' observation
+            if s._name == 'terminal' or 's5': 
+                [o_idx, o, o_prob] = self.observe_sim(s_idx, a_idx)
+                # [o_idx, o, o_prob] = self.observe_real(s_idx, a_idx)
+            else: 
+                [o_idx, o, o_prob] = self.observe_real_ijcai(s_idx, a_idx, request_prop_names, test_object_index)
 
             print('observation made: ' + o._name + '  probability: ' + str(o_prob))
+
+            # update belief
             b = self.update(a_idx, o_idx, b)
             print("Belief: " + str(["%0.2f" % i for i in b]))
 
@@ -247,87 +258,97 @@ def main(argv):
     print('initializing model and solver')
 
     num_trials = 100
-    overall_reward = 0
-    overall_action_cost = 0
-    success_trials = 0
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', 'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', 'can', 'full', 'water', 'narrow', 'hollow', 'top', 'plastic', 'white', 'empty', 'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', 'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
-    for i in range(num_trials): 
+    printout = ''
 
-        print("\n##################### starting a new trial ######################\n")
+    for planner in ['pomdp', 'predefined']:
+        for num_props in [1, 2, 3]: 
+            overall_reward = 0
+            overall_action_cost = 0
+            success_trials = 0
+            for i in range(num_trials): 
 
-    	print('Trial: ' + str(i) + '/' + str(num_trials))
+                print("\n##################### starting a new trial ######################\n")
 
-        # the user can ask about at most 3 predicates
-        query_length = random.randrange(2, 3)
-        request_prop_names = random.sample(predicates, query_length)
+                print('Trial: ' + str(i) + '/' + str(num_trials-1))
 
-        # request_prop_names = ['bright', 'half-full']
+                # the user can ask about at most 3 predicates
+                query_length = random.randrange(num_props, num_props+1)
+                request_prop_names = random.sample(predicates, query_length)
 
-        # we use totally 32 objects, after filtering out the ones with little training data
-        test_object_index = random.randrange(1, 33)
+                # request_prop_names = ['bright', 'half-full']
 
-        print('request_prop_names: ' + str(request_prop_names))
-        model = Model(0.99, request_prop_names, 0.8, -150.0, test_object_index)
-        model.write_to_file('model.pomdp')
+                # we use totally 32 objects, after filtering out the ones with little training data
+                test_object_index = random.randrange(1, 33)
 
-        print 'Predicates: ', request_prop_names
-        # for p in request_prop_names: 
-        #     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+                print('request_prop_names: ' + str(request_prop_names))
+                model = Model(0.99, request_prop_names, 0.8, -150.0, test_object_index)
+                model.write_to_file('model.pomdp')
 
-        object_prop_names = []
-        for p in predicates:
-            if model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)):
-                object_prop_names.append(p)
-        # print 'object_prop_names: ', object_prop_names
+                print 'Predicates: ', request_prop_names
+                # for p in request_prop_names: 
+                #     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
 
-        # request_prop_names_random = [random.choice(simulator_for_classifier._weight_values), \
-        #                            random.choice(simulator_for_classifier._color_values), \
-        #                            random.choice(simulator_for_classifier._content_values)]
+                object_prop_names = []
+                for p in predicates:
+                    if model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)):
+                        object_prop_names.append(p)
+                # print 'object_prop_names: ', object_prop_names
 
-        solver = Solver()
+                # request_prop_names_random = [random.choice(simulator_for_classifier._weight_values), \
+                #                            random.choice(simulator_for_classifier._color_values), \
+                #                            random.choice(simulator_for_classifier._content_values)]
 
-        model_name = 'model.pomdp'
-        print('generating model file "' + model_name + '"')
-        model.write_to_file(model_name)
+                solver = Solver()
 
-        planner = 'pomdp'
-        # planner = 'predefined'
+                model_name = 'model.pomdp'
+                print('generating model file "' + model_name + '"')
+                model.write_to_file(model_name)
 
-        if planner == 'pomdp':
+                # planner = 'pomdp'
+                # look -> press -> grasp -> lift -> hold -> lower -> drop 
+                # planner = 'predefined'
 
-            policy_name = 'output.policy'
-            appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
-            # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-            timeout = 2
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
-            print('this will take at most ' + str(timeout) + ' seconds...')
-            solver.compute_policy(model_name, policy_name, appl, timeout)
+                if planner == 'pomdp':
 
-            print('parsing policy: ' + policy_name)
-            policy = Policy(len(model._states), len(model._actions), policy_name)
+                    policy_name = 'output.policy'
+                    appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+                    # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+                    timeout = 2
+                    dir_path = os.path.dirname(os.path.realpath(__file__))
+                    print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
+                    print('this will take at most ' + str(timeout) + ' seconds...')
+                    solver.compute_policy(model_name, policy_name, appl, timeout)
 
-            print('starting simulation')
-            simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+                    print('parsing policy: ' + policy_name)
+                    policy = Policy(len(model._states), len(model._actions), policy_name)
 
-        elif planner == 'predefined' or planner == 'random':
-            simulator = Simulator(model, None, object_prop_names, request_prop_names)
+                    print('starting simulation')
+                    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-        else:
-            sys.exit('planner selection error')
+                elif planner == 'predefined' or planner == 'random':
+                    simulator = Simulator(model, None, object_prop_names, request_prop_names)
+
+                else:
+                    sys.exit('planner selection error')
 
 
-        trial_reward, action_cost = simulator.run(planner, request_prop_names, test_object_index)
-        overall_reward += trial_reward
-        overall_action_cost += action_cost
-        print 'reward: ' + str(trial_reward) + '\n'
-        success_trials += trial_reward - action_cost > 0
+                trial_reward, action_cost = simulator.run(planner, request_prop_names, test_object_index)
+                overall_reward += trial_reward
+                overall_action_cost += action_cost
+                print 'overall action cost: ' + str(action_cost)
+                print 'overall reward: ' + str(trial_reward) + '\n'
 
-    print('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))
-    print('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))
-    print('success rate: ' + str(float(success_trials)/num_trials))
+                success_trials += trial_reward - action_cost > 0
+
+            printout += planner + str(num_props) + '\n'
+            printout += ('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))  + '\n'
+            printout += ('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))  + '\n'
+            printout += ('success rate: ' + str(float(success_trials)/num_trials))  + '\n'
+
+    print printout
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -163,92 +163,103 @@ class Model:
         # going through all actions based on their names
         for a_idx, a_val in enumerate(self._actions):
 
+            term_idx = self.get_state_index(True, None, None)
+
+            # action of look deterministically leads to state s1, from initial state s0
             if a_val._name == 'look':
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
 
                     if s_val._term == False and s_val._s_index == 0:
                         tmp_s_idx = self.get_state_index(False, 1, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = 1.0
-                    elif s_val._term == False and s_val._s_index == 1:
-                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
-            elif a_val._name == 'ask' or a_val._name == 'press':
+            # action 'ask' can be executed in any state: a robot can always ask a question anytime
+            elif a_val._name == 'ask':
                 for s_idx, s_val in enumerate(self._states):
                     self._trans[a_idx, s_idx, s_idx] = 1.0
 
+            # one can execute action 'press' many times. there is a small chance that we need to reinitialize the system
+            elif a_val._name == 'press':
+                for s_idx, s_val in enumerate(self._states):
+                    if s_val._term == False and s_val._s_index == 1:
+                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                    else:
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
+
+            # after action 'push', one has to reinitialize the system
             elif a_val._name == 'push':
-                success_push = 0.99
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
+            # most likely one ends up with s2. With small probability, one remains in s1
             elif a_val._name == 'grasp':
-                success_push = 0.99
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 1:
                         tmp_s_idx = self.get_state_index(False, 2, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
+            # most likely one ends up with s3. With small probability, one ends up with s5
             elif a_val._name == 'lift':
-                success_push = 0.99
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 2:
                         tmp_s_idx = self.get_state_index(False, 3, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-                    elif s_val._term == False and s_val._s_index == 2:
-                        self._trans[a_idx, s_idx, len(self._states)-1] = 1.0                        
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
+            # most likely one can 'hold' many times. rarely, one ends up with s5 and has to reinit the system
             elif a_val._name == 'hold':
-                success_push = 0.99
+                for s_idx, s_val in enumerate(self._states):
+                    if s_val._term == False and s_val._s_index == 3:
+                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                    else:
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
+
+            elif a_val._name == 'lower':
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 3:
                         tmp_s_idx = self.get_state_index(False, 4, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
-
-            elif a_val._name == 'lower':
-                success_push = 0.99
-                for s_idx, s_val in enumerate(self._states):
-                    if s_val._term == False and s_val._s_index == 4:
-                        tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
-                    else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
             elif a_val._name == 'drop':
-                success_push = 0.99
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 4:
                         tmp_s_idx = self.get_state_index(False, 5, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
             elif a_val._name == 'reinit':
-                success_push = 1.0
+                success_rate = 0.95
                 for s_idx, s_val in enumerate(self._states):
                     if s_val._term == False and s_val._s_index == 5:
                         tmp_s_idx = self.get_state_index(False, 0, s_val._prop_values)
-                        self._trans[a_idx, s_idx, tmp_s_idx] = success_push
-                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_push
+                        self._trans[a_idx, s_idx, tmp_s_idx] = success_rate
+                        self._trans[a_idx, s_idx, s_idx] = 1.0 - success_rate
                     else:
-                        self._trans[a_idx, s_idx, s_idx] = 1.0
+                        self._trans[a_idx, s_idx, term_idx] = 1.0
 
             elif a_val._term == True:
                 for s_idx, s_val in enumerate(self._states):
@@ -390,11 +401,11 @@ class Model:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
                     elif a_val._name == 'hold':
-                        if s_val._s_index != 4:
+                        if s_val._s_index != 3:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
                     elif a_val._name == 'lower':
-                        if s_val._s_index != 5:
+                        if s_val._s_index != 4:
                             self._obs_fun[a_idx, s_idx, len(self._observations)-1] = 1.0
                             continue
                     elif a_val._name == 'drop':
@@ -447,7 +458,8 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = -4.5
                 elif a_val._term == False and a_val._name == 'press':
                     self._reward_fun[a_idx, s_idx] = -5.2
-
+                elif a_val._term == False and a_val._name == 'reinit':
+                    self._reward_fun[a_idx, s_idx] = -10.0
                 elif a_val._prop_values == s_val._prop_values:
                     self._reward_fun[a_idx, s_idx] = 200.0
                 else:
