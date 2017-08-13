@@ -28,8 +28,12 @@ class Simulator(object):
         self._content_values = ['glass','screws','beans','rice']
 
         self._action_cnt = 0
-        # self._predefined_action_sequence = [0, 1, 2, 3, 4, 5]
-        self._predefined_action_sequence = [0, 7, 1, 2, 3, 4, 5]
+
+        # with "ask" action
+        self._predefined_action_sequence = [8, 0, 7, 1, 2, 3, 4, 5]
+
+        # without "ask" action
+        # self._predefined_action_sequence = [0, 7, 1, 2, 3, 4, 5]
 
     def init_state(self):
 
@@ -264,7 +268,7 @@ def main(argv):
     printout = ''
 
     for planner in ['pomdp', 'predefined']:
-        for num_props in [1, 2, 3]: 
+        for num_props in [3, 2, 1]: 
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
@@ -284,7 +288,7 @@ def main(argv):
                 test_object_index = random.randrange(1, 33)
 
                 print('request_prop_names: ' + str(request_prop_names))
-                model = Model(0.99, request_prop_names, 0.8, -150.0, test_object_index)
+                model = Model(0.99, request_prop_names, 0.6, -50.0, test_object_index)
                 model.write_to_file('model.pomdp')
 
                 print 'Predicates: ', request_prop_names
@@ -316,7 +320,7 @@ def main(argv):
                     policy_name = 'output.policy'
                     appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
                     # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-                    timeout = 2
+                    timeout = 5
                     dir_path = os.path.dirname(os.path.realpath(__file__))
                     print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
                     print('this will take at most ' + str(timeout) + ' seconds...')
@@ -347,6 +351,7 @@ def main(argv):
             printout += ('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))  + '\n'
             printout += ('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))  + '\n'
             printout += ('success rate: ' + str(float(success_trials)/num_trials))  + '\n'
+            print printout
 
     print printout
 
