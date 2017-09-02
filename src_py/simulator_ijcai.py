@@ -271,7 +271,7 @@ def main(argv):
     printout = ''
 
     for planner in ['pomdp', 'predefined']:
-        for num_props in [3, 2, 1]: 
+        for num_props in [1, 2, 3]: 
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
@@ -291,7 +291,7 @@ def main(argv):
                 test_object_index = random.randrange(1, 33)
 
                 print('request_prop_names: ' + str(request_prop_names))
-                model = Model(0.99, request_prop_names, 0.6, -50.0, test_object_index)
+                model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index)
                 model.write_to_file('model.pomdp')
 
                 print 'Predicates: ', request_prop_names
