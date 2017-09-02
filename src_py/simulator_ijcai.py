@@ -86,7 +86,10 @@ class Simulator(object):
         #print('request_prop_names: ' + str(request_prop_names))
         #print('query_trial_index: ' + str(query_trial_index))
 
-        query_pred_probs = self._model._classifiers[test_object_index].classifyMultiplePredicates(test_object_index, query_behavior_in_list, request_prop_names, query_trial_index)
+        list_with_single_behavior = []
+        list_with_single_behavior.append(query_behavior_in_list)
+
+        query_pred_probs = self._model._classifiers[test_object_index].classifyMultiplePredicates(test_object_index, list_with_single_behavior, request_prop_names, query_trial_index)
 
         print("\nObservation predicates and probabilities:")
         print(request_prop_names)

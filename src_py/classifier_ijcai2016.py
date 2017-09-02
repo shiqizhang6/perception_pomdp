@@ -463,7 +463,7 @@ class ClassifierIJCAI(object):
 			
 	# input: the target object, the behavior, and a predicate
 	# output: the probability that the object matches the predicate		
-	def classify(self, object_id, behavior, predicate, selected_trial):
+	def classify(self, object_id, behaviors, predicate, selected_trial):
 		
 		# before doing anything, check whether we even have classifiers for the predicate
 		if predicate not in self._predicate_classifier_dict.keys():
@@ -480,8 +480,9 @@ class ClassifierIJCAI(object):
 		# next, find which contexts are available in that behavior
 		b_contexts = []
 		for context in self._contexts:
-			if behavior in context:
-				b_contexts.append(context)
+			for behavior in behaviors:
+				if behavior in context:
+					b_contexts.append(context)
 		#print(b_contexts)
 		#print(selected_trial)
 		
