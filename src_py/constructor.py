@@ -116,17 +116,17 @@ class Model:
     def generate_action_set(self):
 
         # the action names must match the action names in confusion matrices (csv file)
-        self._actions.append(Action(False, 'look', None))
-        self._actions.append(Action(False, 'grasp', None))
-        self._actions.append(Action(False, 'lift', None))
-        self._actions.append(Action(False, 'hold', None))
-        self._actions.append(Action(False, 'lower', None))
-        self._actions.append(Action(False, 'drop', None))
-        self._actions.append(Action(False, 'push', None))
-        self._actions.append(Action(False, 'press', None))
+        self._actions.append(Action(False, 'look', None))   #0
+        self._actions.append(Action(False, 'grasp', None))  #1
+        self._actions.append(Action(False, 'lift', None))   #2
+        self._actions.append(Action(False, 'hold', None))   #3
+        self._actions.append(Action(False, 'lower', None))  #4
+        self._actions.append(Action(False, 'drop', None))   #5
+        self._actions.append(Action(False, 'push', None))   #6
+        self._actions.append(Action(False, 'press', None))  #7
 
-        self._actions.append(Action(False, 'ask', None))
-        self._actions.append(Action(False, 'reinit', None))
+        self._actions.append(Action(False, 'ask', None))    #8
+        self._actions.append(Action(False, 'reinit', None)) #9
 
         self.generate_action_set_helper(0, [], len(self._prop_names))
 

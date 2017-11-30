@@ -31,6 +31,14 @@ class Simulator(object):
 
         # with "ask" action
         self._predefined_action_sequence = [8, 0, 7, 1, 2, 3, 4, 5]
+        self._legal_actions = {
+            0: [0, 8], 
+            1: [1, 6, 7], 
+            2: [2], 
+            3: [4], 
+            4: [5], 
+            5: [9]
+        }
 
         # without "ask" action
         # self._predefined_action_sequence = [0, 7, 1, 2, 3, 4, 5]
@@ -89,7 +97,8 @@ class Simulator(object):
         list_with_single_behavior = []
         list_with_single_behavior.append(query_behavior_in_list)
 
-        query_pred_probs = self._model._classifiers[test_object_index].classifyMultiplePredicates(test_object_index, list_with_single_behavior, request_prop_names, query_trial_index)
+        query_pred_probs = self._model._classifiers[test_object_index].classifyMultiplePredicates(\
+            test_object_index, list_with_single_behavior, request_prop_names, query_trial_index)
 
         print("\nObservation predicates and probabilities:")
         print(request_prop_names)
@@ -193,7 +202,24 @@ class Simulator(object):
 
         return retb/sum(retb)
 
-    def run(self, planner, request_prop_names, test_object_index):
+    # according to the current belief distribution, the robot is forced to select a
+    # report action to terminate the exploration process
+    # it is used in random_plus strategy. 
+    def select_report_action(self, b)
+
+        prop_values = self._model._states[b.argmax()]._prop_values
+        fake_action = Action(True, None, prop_values)
+        for action_idx, action_val in enumerate(self._model._actions):
+            if action_val._name == fake_action._name:
+                a_idx = action_idx
+                break;
+        else:
+            sys.exit('Error in selecting predefined actions')
+
+        return a_idx
+
+
+    def run(self, planner, request_prop_names, test_object_index, max_cost):
 
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
@@ -203,29 +229,66 @@ class Simulator(object):
 
         while True:
 
-            # select the next action
+            # select an action using the POMDP policy
             if planner == 'pomdp':
                 a_idx = self._policy.select_action(b)
 
+
+            # this a weakest policy, an action is randomly selected from the exploration and
+            # claiming actions. Illegal actions lead to early termination
             elif planner == 'random':
                 a_idx = random.choice(range(len(self._model._actions)))
 
+
+            # exploration actions are randomly selected from the legal actions for each
+            # state. E.g., in state x_1, the robot can only press or push the obj
+            # we set a cost threshold - once it's reached the robot selects the most 
+            # likely claim to terminate the exploration
+            elif planner == 'random_plus'
+                
+                if action_cost > max_cost:
+                    a_idx = self.select_report_action(b)
+                else: 
+                    a_idx = random.choice(self._legal_actions[s_idx])
+                    
+
+            # the robot strictly follows this predefined sequence of actions. The robot 
+            # may fail in some exploration actions. These failures are ignored - as a result
+            # the robot may take illegal actions resulting in undesirable early terminations
             elif planner == 'predefined':
                 # if all predefined actions have been used, take a terminal action
 
-                if self._action_cnt == len(self._predefined_action_sequence):
-                    prop_values = self._model._states[b.argmax()]._prop_values
-                    fake_action = Action(True, None, prop_values)
-                    for action_idx, action_val in enumerate(self._model._actions):
-                        if action_val._name == fake_action._name:
-                            a_idx = action_idx
-                            break;
-                    else:
-                        sys.exit('Error in selecting predefined actions')
+                if self._action_cnt < len(self._predefined_action_sequence):
 
-                else:
                     a_idx = self._predefined_action_sequence[self._action_cnt]
                     self._action_cnt += 1
+
+                else: 
+                    a_idx = self.select_report_action(b)
+
+
+            # improved predefined strategy, the robot follows the predefined sequence
+            # of actions but only moves to the next action when it is legal. 
+            elif planner == 'predefined_plus':
+
+                if self._action_cnt < len(self._predefined_action_sequence):
+
+                    a_idx = self._predefined_action_sequence[self._action_cnt]
+
+                    if a_idx in self._legal_actions:
+
+                        self._action_cnt += 1
+                    else:
+                        self._action_cnt -= 1
+                        a_idx = self._predefined_action_sequence[self._action_cnt]
+                        assert a_idx in self._legal_actions
+
+                else: 
+                    a_idx = self.select_report_action(b)
+
+            else:
+                sys.exit('planner type unrecognized: ' + planner)
+
 
             a = self._model._actions[a_idx]
             print('action selected (' + planner + '): ' + a._name)
@@ -266,12 +329,16 @@ def main(argv):
 
     num_trials = 100
 
-    predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', 'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', 'can', 'full', 'water', 'narrow', 'hollow', 'top', 'plastic', 'white', 'empty', 'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', 'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
+    predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
+    'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
+    'can', 'full', 'water', 'narrow', 'hollow', 'top', 'plastic', 'white', 'empty', \
+    'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', \
+    'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
     printout = ''
 
     for planner in ['pomdp', 'predefined']:
-        for num_props in [1, 2, 3]: 
+        for num_props in [2, 3]: 
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
@@ -335,14 +402,18 @@ def main(argv):
                     print('starting simulation')
                     simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-                elif planner == 'predefined' or planner == 'random':
+                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or 
+                    planner == 'predefined_plus':
+
                     simulator = Simulator(model, None, object_prop_names, request_prop_names)
 
                 else:
                     sys.exit('planner selection error')
 
 
-                trial_reward, action_cost = simulator.run(planner, request_prop_names, test_object_index)
+                trial_reward, action_cost = simulator.run(planner, request_prop_names, \
+                    test_object_index, max_cost)
+
                 overall_reward += trial_reward
                 overall_action_cost += action_cost
                 print 'overall action cost: ' + str(action_cost)
