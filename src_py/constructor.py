@@ -444,20 +444,20 @@ class Model:
                 elif a_val._term == False and a_val._name == 'look':
                     self._reward_fun[a_idx, s_idx] = -0.5
                 elif a_val._term == False and a_val._name == 'grasp':
-                    self._reward_fun[a_idx, s_idx] = -4.5
+                    self._reward_fun[a_idx, s_idx] = -22.0
                 elif a_val._term == False and a_val._name == 'lift':
-                    self._reward_fun[a_idx, s_idx] = -2.6              
+                    self._reward_fun[a_idx, s_idx] = -11.1              
                 elif a_val._term == False and a_val._name == 'hold':
                     self._reward_fun[a_idx, s_idx] = -1.0
                 # making up a cost for this lower action -- actual cost needs to be acquired from Jivko
                 elif a_val._term == False and a_val._name == 'lower':
-                    self._reward_fun[a_idx, s_idx] = -1.0                    
+                    self._reward_fun[a_idx, s_idx] = -10.6                    
                 elif a_val._term == False and a_val._name == 'drop':
-                    self._reward_fun[a_idx, s_idx] = -2.6
+                    self._reward_fun[a_idx, s_idx] = -9.8
                 elif a_val._term == False and a_val._name == 'push':
-                    self._reward_fun[a_idx, s_idx] = -4.5
+                    self._reward_fun[a_idx, s_idx] = -22.0
                 elif a_val._term == False and a_val._name == 'press':
-                    self._reward_fun[a_idx, s_idx] = -5.2
+                    self._reward_fun[a_idx, s_idx] = -22.0
                 elif a_val._term == False and a_val._name == 'reinit':
                     self._reward_fun[a_idx, s_idx] = -10.0
                 elif a_val._prop_values == s_val._prop_values:
