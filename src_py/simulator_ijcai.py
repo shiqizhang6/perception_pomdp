@@ -205,7 +205,7 @@ class Simulator(object):
     # according to the current belief distribution, the robot is forced to select a
     # report action to terminate the exploration process
     # it is used in random_plus strategy. 
-    def select_report_action(self, b)
+    def select_report_action(self, b):
 
         prop_values = self._model._states[b.argmax()]._prop_values
         fake_action = Action(True, None, prop_values)
@@ -244,7 +244,7 @@ class Simulator(object):
             # state. E.g., in state x_1, the robot can only press or push the obj
             # we set a cost threshold - once it's reached the robot selects the most 
             # likely claim to terminate the exploration
-            elif planner == 'random_plus'
+            elif planner == 'random_plus':
                 
                 if action_cost > max_cost:
                     a_idx = self.select_report_action(b)
@@ -388,8 +388,9 @@ def main(argv):
                 if planner == 'pomdp':
 
                     policy_name = 'output.policy'
-                    appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+                    #appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
                     # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+                    appl='/home/saeid/software/sarsop/src/pomdpsol' 
                     timeout = 5
                     dir_path = os.path.dirname(os.path.realpath(__file__))
                     print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
@@ -402,8 +403,8 @@ def main(argv):
                     print('starting simulation')
                     simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or 
-                    planner == 'predefined_plus':
+
+                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or planner == 'predefined_plus':
 
                     simulator = Simulator(model, None, object_prop_names, request_prop_names)
 
