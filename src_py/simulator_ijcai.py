@@ -27,15 +27,13 @@ class Simulator(object):
         self._weight_values = ['light','medium','heavy']
         self._content_values = ['glass','screws','beans','rice']
 
-        self._action_cnt = 0
-
         # with "ask" action
         self._predefined_action_sequence = [8, 0, 7, 1, 2, 3, 4, 5]
         self._legal_actions = {
-            0: [0, 8], 
-            1: [1, 6, 7], 
+            0: [0,8], 
+            1: [1,6,7], 
             2: [2], 
-            3: [4], 
+            3: [3,4], 
             4: [5], 
             5: [9]
         }
@@ -205,7 +203,12 @@ class Simulator(object):
     # according to the current belief distribution, the robot is forced to select a
     # report action to terminate the exploration process
     # it is used in random_plus strategy. 
-    def select_report_action(self, b)
+    def select_report_action(self, b):
+
+    	# it's possible that the most likely entry goes to the term state -- we need to 
+    	# assign zero to the term state to make sure we find an report action that makes sense
+    	b_non_term = b
+    	b_non_term[-1] = 0.0
 
         prop_values = self._model._states[b.argmax()]._prop_values
         fake_action = Action(True, None, prop_values)
@@ -226,6 +229,7 @@ class Simulator(object):
         b = self.init_belief()
         trial_reward = 0
         action_cost = 0
+        self._action_cnt = 0
 
         while True:
 
@@ -244,12 +248,14 @@ class Simulator(object):
             # state. E.g., in state x_1, the robot can only press or push the obj
             # we set a cost threshold - once it's reached the robot selects the most 
             # likely claim to terminate the exploration
-            elif planner == 'random_plus'
+            elif planner == 'random_plus':
                 
-                if action_cost > max_cost:
+                # the robot takes legal actions until their total cost goes beyond the max_cost
+                # this trial_reward does not include the cost of the report action. 
+                if abs(trial_reward) > max_cost:
                     a_idx = self.select_report_action(b)
                 else: 
-                    a_idx = random.choice(self._legal_actions[s_idx])
+                    a_idx = random.choice(self._legal_actions[self._model._states[s_idx]._s_index])
                     
 
             # the robot strictly follows this predefined sequence of actions. The robot 
@@ -274,14 +280,21 @@ class Simulator(object):
                 if self._action_cnt < len(self._predefined_action_sequence):
 
                     a_idx = self._predefined_action_sequence[self._action_cnt]
+                    print ('a_idx: ' + str(a_idx))
+                    print ('s_idx: ' + str(s_idx))
+                    print ('self._model._states[s_idx]._s_index: ' + str(self._model._states[s_idx]._s_index))
 
-                    if a_idx in self._legal_actions:
+                    if a_idx in self._legal_actions[self._model._states[s_idx]._s_index]:
 
                         self._action_cnt += 1
+                        print ('self._action_cnt: ' + str(self._action_cnt))
+
                     else:
-                        self._action_cnt -= 1
-                        a_idx = self._predefined_action_sequence[self._action_cnt]
-                        assert a_idx in self._legal_actions
+
+                    	print('illegal')
+                        a_idx = self._predefined_action_sequence[self._action_cnt - 1]
+                        print ('illegal: a_idx: ' + str(a_idx))
+                        assert a_idx in self._legal_actions[self._model._states[s_idx]._s_index]
 
                 else: 
                     a_idx = self.select_report_action(b)
@@ -337,11 +350,16 @@ def main(argv):
 
     printout = ''
 
-    for planner in ['pomdp', 'predefined']:
-        for num_props in [2, 3]: 
+    # for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
+    for planner in ['random_plus', 'predefined_plus']:
+
+        for num_props in [1, 2, 3]: 
+
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
+            max_cost = 50
+
             for i in range(num_trials): 
 
                 print("\n##################### starting a new trial ######################\n")
@@ -402,7 +420,7 @@ def main(argv):
                     print('starting simulation')
                     simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or 
+                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or \
                     planner == 'predefined_plus':
 
                     simulator = Simulator(model, None, object_prop_names, request_prop_names)
@@ -421,7 +439,7 @@ def main(argv):
 
                 success_trials += trial_reward - action_cost > 0
 
-            printout += planner + str(num_props) + '\n'
+            printout += '\n' + planner + str(num_props) + '\n'
             printout += ('average reward over ' + str(num_trials) + ' is: ' + str(overall_reward/float(num_trials)))  + '\n'
             printout += ('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))  + '\n'
             printout += ('success rate: ' + str(float(success_trials)/num_trials))  + '\n'
