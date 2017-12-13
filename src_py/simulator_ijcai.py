@@ -210,7 +210,7 @@ class Simulator(object):
     	b_non_term = b
     	b_non_term[-1] = 0.0
 
-        prop_values = self._model._states[b.argmax()]._prop_values
+        prop_values = self._model._states[b_non_term.argmax()]._prop_values
         fake_action = Action(True, None, prop_values)
         for action_idx, action_val in enumerate(self._model._actions):
             if action_val._name == fake_action._name:
@@ -223,6 +223,7 @@ class Simulator(object):
 
 
     def run(self, planner, request_prop_names, test_object_index, max_cost):
+    # def run(self, planner, request_prop_names, test_object_index):
 
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
@@ -230,6 +231,8 @@ class Simulator(object):
         trial_reward = 0
         action_cost = 0
         self._action_cnt = 0
+
+        max_cost=[-0.5,-22.0,-11.1,-1.0,-10.6,-9.8,-22.0,-22.0,-10.0]    #Should be positive???or negative
 
         while True:
 
@@ -406,8 +409,9 @@ def main(argv):
                 if planner == 'pomdp':
 
                     policy_name = 'output.policy'
-                    appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+                    #appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
                     # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+                    appl='/home/saeid/software/sarsop/src/pomdpsol' 
                     timeout = 5
                     dir_path = os.path.dirname(os.path.realpath(__file__))
                     print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
@@ -420,8 +424,8 @@ def main(argv):
                     print('starting simulation')
                     simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or \
-                    planner == 'predefined_plus':
+
+                elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or planner == 'predefined_plus':
 
                     simulator = Simulator(model, None, object_prop_names, request_prop_names)
 
@@ -429,9 +433,9 @@ def main(argv):
                     sys.exit('planner selection error')
 
 
-                trial_reward, action_cost = simulator.run(planner, request_prop_names, \
-                    test_object_index, max_cost)
+               # trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index, max_cost)
 
+                trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index)
                 overall_reward += trial_reward
                 overall_action_cost += action_cost
                 print 'overall action cost: ' + str(action_cost)
