@@ -219,14 +219,15 @@ class Simulator(object):
         return a_idx
 
 
-    def run(self, planner, request_prop_names, test_object_index, max_cost):
+    #def run(self, planner, request_prop_names, test_object_index, max_cost):
 
+    def run(self, planner, request_prop_names, test_object_index):
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
         b = self.init_belief()
         trial_reward = 0
         action_cost = 0
-
+	max_cost=[-0.5,-22.0,-11.1,-1.0,-10.6,-9.8,-22.0,-22.0,-10.0]    #Should be positive???or negative
         while True:
 
             # select an action using the POMDP policy
@@ -246,7 +247,7 @@ class Simulator(object):
             # likely claim to terminate the exploration
             elif planner == 'random_plus':
                 
-                if action_cost > max_cost:
+                if action_cost > max_cost[i]:
                     a_idx = self.select_report_action(b)
                 else: 
                     a_idx = random.choice(self._legal_actions[s_idx])
@@ -412,9 +413,9 @@ def main(argv):
                     sys.exit('planner selection error')
 
 
-                trial_reward, action_cost = simulator.run(planner, request_prop_names, \
-                    test_object_index, max_cost)
+               # trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index, max_cost)
 
+                trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index)
                 overall_reward += trial_reward
                 overall_action_cost += action_cost
                 print 'overall action cost: ' + str(action_cost)
