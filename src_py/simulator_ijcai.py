@@ -223,7 +223,6 @@ class Simulator(object):
 
 
     def run(self, planner, request_prop_names, test_object_index, max_cost):
-    # def run(self, planner, request_prop_names, test_object_index):
 
         [s_idx, s] = self.init_state()
         print('initial state: ' + s._name)
@@ -433,9 +432,8 @@ def main(argv):
                     sys.exit('planner selection error')
 
 
-               # trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index, max_cost)
+                trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index, max_cost)
 
-                trial_reward, action_cost = simulator.run(planner, request_prop_names,test_object_index)
                 overall_reward += trial_reward
                 overall_action_cost += action_cost
                 print 'overall action cost: ' + str(action_cost)
