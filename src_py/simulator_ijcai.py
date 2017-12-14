@@ -408,9 +408,18 @@ def main(argv):
                 if planner == 'pomdp':
 
                     policy_name = 'output.policy'
-                    #appl = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
-                    # appl = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-                    appl='/home/saeid/software/sarsop/src/pomdpsol' 
+                    applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+                    applPath2 = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+                    applPath3='/home/saeid/software/sarsop/src/pomdpsol' 
+                    pathlist=[applPath1,Path2,applPath3]
+                    appl=None
+                    for p in pathlist:
+                        if os.path.exists(p):
+                            appl=p   
+                    if appl==None:
+                        print "ERROR: No path detected for pomdpsol"
+
+
                     timeout = 5
                     dir_path = os.path.dirname(os.path.realpath(__file__))
                     print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
