@@ -231,8 +231,6 @@ class Simulator(object):
         action_cost = 0
         self._action_cnt = 0
 
-        max_cost=[-0.5,-22.0,-11.1,-1.0,-10.6,-9.8,-22.0,-22.0,-10.0]    #Should be positive???or negative
-
         while True:
 
             # select an action using the POMDP policy
@@ -254,6 +252,8 @@ class Simulator(object):
                 
                 # the robot takes legal actions until their total cost goes beyond the max_cost
                 # this trial_reward does not include the cost of the report action. 
+                print ("abs(trial_reward)")
+                print(abs(trial_reward))
                 if abs(trial_reward) > max_cost:
                     a_idx = self.select_report_action(b)
                 else: 
@@ -342,7 +342,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 100
+    num_trials = 2
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
