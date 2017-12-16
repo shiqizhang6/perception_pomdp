@@ -353,7 +353,7 @@ def main(argv):
     printout = ''
 
     # for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
-    for planner in ['random_plus', 'predefined_plus']:
+    for planner in ['pomdp','random_plus', 'predefined_plus']:
 
         for num_props in [1, 2, 3]: 
 
@@ -410,8 +410,8 @@ def main(argv):
                     policy_name = 'output.policy'
                     applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
                     applPath2 = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
-                    applPath3='/home/saeid/software/sarsop/src/pomdpsol' 
-                    pathlist=[applPath1,Path2,applPath3]
+                    applPath3 = '/home/saeid/software/sarsop/src/pomdpsol' 
+                    pathlist=[applPath1,applPath2,applPath3]
                     appl=None
                     for p in pathlist:
                         if os.path.exists(p):
