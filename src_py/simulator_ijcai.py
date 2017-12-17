@@ -5,6 +5,8 @@ import random
 import os
 import numpy as np
 import sys
+import pandas as pd
+import matplotlib.pyplot as plt
 from constructor import Model, State, Action, Obs
 from policy import Policy, Solver
 
@@ -342,7 +344,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 2
+    num_trials = 200
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -351,9 +353,11 @@ def main(argv):
     'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
     printout = ''
+    
+    df=pd.DataFrame()                                                 #Creating a dataframe for plotting
 
-    # for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
-    for planner in ['pomdp','random_plus', 'predefined_plus']:
+    for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
+    #for planner in ['pomdp','random_plus', 'predefined_plus']:
 
         for num_props in [1, 2, 3]: 
 
@@ -455,8 +459,36 @@ def main(argv):
             printout += ('average action cost over '+ str(num_trials) + ' is: ' + str(overall_action_cost/float(num_trials)))  + '\n'
             printout += ('success rate: ' + str(float(success_trials)/num_trials))  + '\n'
             print printout
+            
+            #Storing the results in a pandas.DataFrame for plotting
+            df.at[planner+ str(num_props),'Overall reward']= overall_reward/float(num_trials)
+            df.at[planner+ str(num_props),'Overall cost']= overall_action_cost/float(num_trials)
+            df.at[planner+ str(num_props),'success rate']= float(success_trials)/num_trials           
 
     print printout
+    print df
+
+    fig=plt.figure()
+    
+    #Creating plots for different planners and three predicates
+    for count,metric in enumerate(list(df)):
+        ax=plt.subplot(1,len(list(df)),count+1)
+
+        l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='Pomdp')
+        l2 = plt.plot([1,2,3],df.loc['random_plus1':'random_plus3',metric],marker='x',linestyle='-.',label='random_plus')
+        l3 = plt.plot([1,2,3],df.loc['predefined_plus1':'predefined_plus3',metric],marker='o',linestyle='--',label='predefined_plus')
+        l4 = plt.plot([1,2,3],df.loc['predefined1':'predefined3',metric],marker='D',linestyle=':',label='predefined')
+        l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='random')
+        plt.ylabel(metric)
+        plt.xlabel('Number of Properties')
+        plt.xlim(0,3.5 )
+    
+    ax.legend(loc='upper left', bbox_to_anchor=(-2.0, -0.05),  shadow=True, ncol=5)
+    
+    plt.show()
+    fig.savefig('Results_200 trials')
+
+
 
 if __name__ == "__main__":
     main(sys.argv)
