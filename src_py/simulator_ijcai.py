@@ -6,6 +6,8 @@ import os
 import numpy as np
 import sys
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from constructor import Model, State, Action, Obs
 from policy import Policy, Solver
@@ -462,13 +464,13 @@ def main(argv):
             
             #Storing the results in a pandas.DataFrame for plotting
             df.at[planner+ str(num_props),'Overall reward']= overall_reward/float(num_trials)
-            df.at[planner+ str(num_props),'Overall cost']= overall_action_cost/float(num_trials)
+            df.at[planner+ str(num_props),'Overall cost']= abs(overall_action_cost/float(num_trials))
             df.at[planner+ str(num_props),'success rate']= float(success_trials)/num_trials           
 
     print printout
     print df
 
-    fig=plt.figure()
+    fig=plt.figure(figsize=(8,8))
     
     #Creating plots for different planners and three predicates
     for count,metric in enumerate(list(df)):
@@ -480,13 +482,19 @@ def main(argv):
         l4 = plt.plot([1,2,3],df.loc['predefined1':'predefined3',metric],marker='D',linestyle=':',label='predefined')
         l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='random')
         plt.ylabel(metric)
+	plt.xlim(0,3.5)
+	xleft , xright =ax.get_xlim()
+	ybottom , ytop = ax.get_ylim()
+	ax.set_aspect(aspect=abs((xright-xleft)/(ybottom-ytop)), adjustable=None, anchor=None)
+       
+	
         plt.xlabel('Number of Properties')
         plt.xlim(0,3.5 )
-    
-    ax.legend(loc='upper left', bbox_to_anchor=(-2.0, -0.05),  shadow=True, ncol=5)
-    
+        
+    ax.legend(loc='upper left', bbox_to_anchor=(-2.85, 1.5),  shadow=True, ncol=5)
+    fig.tight_layout() 
     plt.show()
-    fig.savefig('Results_200 trials')
+    fig.savefig('Results_200_trials')
 
 
 
