@@ -376,8 +376,11 @@ def main(argv):
 
                 # the user can ask about at most 3 predicates
                 query_length = random.randrange(num_props, num_props+1)
-                request_prop_names = random.sample(predicates, query_length)
-
+                #request_prop_names = random.sample(predicates, query_length)
+		random.seed(i)
+                shuffledpredicates=predicates[:]
+                random.shuffle(shuffledpredicates)
+                request_prop_names=shuffledpredicates[0:query_length]
                 # request_prop_names = ['bright', 'half-full']
 
                 # we use totally 32 objects, after filtering out the ones with little training data
