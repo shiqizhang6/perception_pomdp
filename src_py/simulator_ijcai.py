@@ -468,33 +468,33 @@ def main(argv):
             #Storing the results in a pandas.DataFrame for plotting
             df.at[planner+ str(num_props),'Overall reward']= overall_reward/float(num_trials)
             df.at[planner+ str(num_props),'Overall cost']= abs(overall_action_cost/float(num_trials))
-            df.at[planner+ str(num_props),'success rate']= float(success_trials)/num_trials           
+            df.at[planner+ str(num_props),'Success rate']= float(success_trials)/num_trials           
 
     print printout
     print df
 
-    fig=plt.figure(figsize=(8,8))
+    fig=plt.figure(figsize=(8,3))
     
     #Creating plots for different planners and three predicates
     for count,metric in enumerate(list(df)):
         ax=plt.subplot(1,len(list(df)),count+1)
 
-        l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='Pomdp')
-        l2 = plt.plot([1,2,3],df.loc['random_plus1':'random_plus3',metric],marker='x',linestyle='-.',label='random_plus')
-        l3 = plt.plot([1,2,3],df.loc['predefined_plus1':'predefined_plus3',metric],marker='o',linestyle='--',label='predefined_plus')
-        l4 = plt.plot([1,2,3],df.loc['predefined1':'predefined3',metric],marker='D',linestyle=':',label='predefined')
-        l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='random')
+        l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
+        l2 = plt.plot([1,2,3],df.loc['predefined_plus1':'predefined_plus3',metric],marker='o',linestyle='--',label='Predefined Plus')
+        l3 = plt.plot([1,2,3],df.loc['predefined1':'predefined3',metric],marker='D',linestyle=':',label='Predefined')
+        l4 = plt.plot([1,2,3],df.loc['random_plus1':'random_plus3',metric],marker='x',linestyle='-.',label='Random Plus')
+        l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='Random')
         plt.ylabel(metric)
-	plt.xlim(0,3.5)
+	plt.xlim(0.5,3.5)
 	xleft , xright =ax.get_xlim()
 	ybottom , ytop = ax.get_ylim()
 	ax.set_aspect(aspect=abs((xright-xleft)/(ybottom-ytop)), adjustable=None, anchor=None)
        
 	
         plt.xlabel('Number of Properties')
-        plt.xlim(0,3.5 )
         
-    ax.legend(loc='upper left', bbox_to_anchor=(-2.85, 1.5),  shadow=True, ncol=5)
+        
+    ax.legend(loc='upper left', bbox_to_anchor=(-3.10, 1.25),  shadow=True, ncol=5)
     fig.tight_layout() 
     plt.show()
     fig.savefig('Results_200_trials')
