@@ -253,7 +253,7 @@ class Simulator(object):
             # we set a cost threshold - once it's reached the robot selects the most 
             # likely claim to terminate the exploration
             elif planner == 'random_plus':
-                
+
                 # the robot takes legal actions until their total cost goes beyond the max_cost
                 # this trial_reward does not include the cost of the report action. 
                 print ("abs(trial_reward)")
@@ -346,7 +346,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 200
+    num_trials = 1
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -354,19 +354,38 @@ def main(argv):
     'wide', 'cap', 'cylinder', 'lid', 'metallic', 'circular', 'canister', 'medium-sized', \
     'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
+
+    #predicates_dict={'color':['yellow','silver','red','white','metallic'],'size':['large','small','wide'], \
+    #                 'shape':['bottle','canister','tube'],'material':['plastic','metal'], \
+    #                 'occupancy':['empty','half-full','full'],'width':['narrow','wide']}
+
+    #pred_copy=dict(predicates_dict)
+
+
     printout = ''
     
     df=pd.DataFrame()                                                 #Creating a dataframe for plotting
 
-    for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
-    #for planner in ['pomdp','random_plus', 'predefined_plus']:
+    #for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
+    for planner in ['pomdp-related','pomdp-unrelated']:
+	num_props=2
+    	predicates_dict={'color':['yellow','silver','red','white','metallic'],'size':['large','small','wide'], \
+                     	 'shape':['bottle','canister','tube'],'material':['plastic','metal'], \
+                     	 'occupancy':['empty','half-full','full'],'width':['narrow','wide']}
 
-        for num_props in [1, 2, 3]: 
+    	pred_copy=dict(predicates_dict)
 
+        for num_props in [2]:
+	
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
             max_cost = 50
+	    # the user can ask about at most 3 predicates
+            #query_length = random.randrange(num_props, num_props+1)
+            #prop_names = random.sample(predicates_dict, query_length)
+
+
 
             for i in range(num_trials): 
 
@@ -374,26 +393,60 @@ def main(argv):
 
                 print('Trial: ' + str(i) + '/' + str(num_trials-1))
 
-                # the user can ask about at most 3 predicates
-                query_length = random.randrange(num_props, num_props+1)
-                #request_prop_names = random.sample(predicates, query_length)
-		random.seed(i)
-                shuffledpredicates=predicates[:]
-                random.shuffle(shuffledpredicates)
-                request_prop_names=shuffledpredicates[0:query_length]
-                # request_prop_names = ['bright', 'half-full']
+	if planner =='pomdp-unrelated':
+			query_prop_names=[]
+			request_prop_names=[]
+   			prop_names=random.sample(pred_copy,2)  			           
+    			for prop in prop_names:
+				idx=random.randrange(0,len(pred_copy[prop]))
+   				query_prop_names.append(pred_copy[prop][idx])
+                		del pred_copy[prop][idx]
 
-                # we use totally 32 objects, after filtering out the ones with little training data
-                test_object_index = random.randrange(1, 33)
+    			for prop in prop_names:
+				idx=random.randrange(0,len(pred_copy[prop]))
+   				request_prop_names.append(pred_copy[prop][idx])
+                		del pred_copy[prop][idx]
 
-                print('request_prop_names: ' + str(request_prop_names))
-                model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index)
-                model.write_to_file('model.pomdp')
+     
+                	# we use totally 32 objects, after filtering out the ones with little training data
+                	test_object_index = random.randrange(1, 33)
 
-                print 'Predicates: ', request_prop_names
-                # for p in request_prop_names: 
-                #     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+                	print('request_prop_names: ' + str(request_prop_names))
+                	model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index)
+                	model.write_to_file('model.pomdp')
 
+                	print 'Predicates of query: ', query_prop_names
+                	# for p in request_prop_names: 
+                	#     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+                
+		else:
+		
+                	# the user can ask about at most 3 predicates
+                	query_length = random.randrange(num_props, num_props+1)
+                	#request_prop_names = random.sample(predicates, query_length)
+			random.seed(i)
+                	shuffledpredicates=predicates[:]
+                	random.shuffle(shuffledpredicates)
+                	request_prop_names=shuffledpredicates[0:query_length]
+                	# request_prop_names = ['bright', 'half-full']
+                	# we use totally 32 objects, after filtering out the ones with little training data
+                	test_object_index = random.randrange(1, 33)
+
+                	print('request_prop_names: ' + str(request_prop_names))
+                	model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index)
+                	model.write_to_file('model.pomdp')
+
+                	print 'Predicates: ', request_prop_names
+                	# for p in request_prop_names: 
+                	#     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+
+
+	
+
+
+
+
+                        
                 object_prop_names = []
                 for p in predicates:
                     if model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)):
@@ -413,8 +466,34 @@ def main(argv):
                 # planner = 'pomdp'
                 # look -> press -> grasp -> lift -> hold -> lower -> drop 
                 # planner = 'predefined'
+                if planner == 'pomdp-unrelated':
 
-                if planner == 'pomdp':
+                    policy_name = 'output.policy'
+                    applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
+                    applPath2 = '/home/szhang/software/pomdp_solvers/David_Hsu/appl-0.95/src/pomdpsol'
+                    applPath3 = '/home/saeid/software/sarsop/src/pomdpsol' 
+                    pathlist=[applPath1,applPath2,applPath3]
+                    appl=None
+                    for p in pathlist:
+                        if os.path.exists(p):
+                            appl=p   
+                    if appl==None:
+                        print "ERROR: No path detected for pomdpsol"
+
+
+                    timeout = 5
+                    dir_path = os.path.dirname(os.path.realpath(__file__))
+                    print('computing policy "' + dir_path + '/' + policy_name + '" for model "' + model_name + '"')
+                    print('this will take at most ' + str(timeout) + ' seconds...')
+                    solver.compute_policy(model_name, policy_name, appl, timeout)
+
+                    print('parsing policy: ' + policy_name)
+                    policy = Policy(len(model._states), len(model._actions), policy_name)
+
+                    print('starting simulation')
+                    simulator = Simulator(model, policy, object_prop_names, query_prop_names)
+
+                if planner == 'pomdp-related':
 
                     policy_name = 'output.policy'
                     applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
