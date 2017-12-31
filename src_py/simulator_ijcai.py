@@ -238,9 +238,12 @@ class Simulator(object):
         while True:
 
             # select an action using the POMDP policy
-            if planner == 'pomdp':
+            #if planner == 'pomdp':
+	    if planner=='pomdp':	
                 a_idx = self._policy.select_action(b)
 
+	    elif planner=='pomdp-irrelevant':	
+                a_idx = self._policy.select_action(b)
 
             # this a weakest policy, an action is randomly selected from the exploration and
             # claiming actions. Illegal actions lead to early termination
@@ -346,7 +349,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 1
+    num_trials = 50
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -355,80 +358,54 @@ def main(argv):
     'tall', 'short', 'liquid', 'light', 'metal', 'bottle']
 
 
-    #predicates_dict={'color':['yellow','silver','red','white','metallic'],'size':['large','small','wide'], \
-    #                 'shape':['bottle','canister','tube'],'material':['plastic','metal'], \
-    #                 'occupancy':['empty','half-full','full'],'width':['narrow','wide']}
-
-    #pred_copy=dict(predicates_dict)
-
-
     printout = ''
     
     df=pd.DataFrame()                                                 #Creating a dataframe for plotting
 
     #for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
-    for planner in ['pomdp-related','pomdp-unrelated']:
-	num_props=2
-    	predicates_dict={'color':['yellow','silver','red','white','metallic'],'size':['large','small','wide'], \
-                     	 'shape':['bottle','canister','tube'],'material':['plastic','metal'], \
-                     	 'occupancy':['empty','half-full','full'],'width':['narrow','wide']}
+    for planner in ['pomdp','pomdp-irrelevant']:	
 
-    	pred_copy=dict(predicates_dict)
-
-        for num_props in [2]:
+        for num_props in [1,2,3]:
 	
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
             max_cost = 50
-	    # the user can ask about at most 3 predicates
-            #query_length = random.randrange(num_props, num_props+1)
-            #prop_names = random.sample(predicates_dict, query_length)
-
-
-
+	    
             for i in range(num_trials): 
 
                 print("\n##################### starting a new trial ######################\n")
 
                 print('Trial: ' + str(i) + '/' + str(num_trials-1))
 
-	if planner =='pomdp-unrelated':
-			query_prop_names=[]
-			request_prop_names=[]
-   			prop_names=random.sample(pred_copy,2)  			           
-    			for prop in prop_names:
-				idx=random.randrange(0,len(pred_copy[prop]))
-   				query_prop_names.append(pred_copy[prop][idx])
-                		del pred_copy[prop][idx]
+                # the user can ask about at most 3 predicates
+                query_length = random.randrange(num_props, num_props+1)
+                #request_prop_names = random.sample(predicates, query_length)
+		random.seed(i)
+                shuffledpredicates=predicates[:]
+                random.shuffle(shuffledpredicates)
+                request_prop_names=shuffledpredicates[0:query_length]
+                # request_prop_names = ['bright', 'half-full']
 
-    			for prop in prop_names:
-				idx=random.randrange(0,len(pred_copy[prop]))
-   				request_prop_names.append(pred_copy[prop][idx])
-                		del pred_copy[prop][idx]
-
+                
+		if planner =='pomdp-irrelevant':
+			
+			for item in request_prop_names:
+                            shuffledpredicates.remove(item)
+   			irrelevant_prop=random.sample(shuffledpredicates,query_length)  			            
      
                 	# we use totally 32 objects, after filtering out the ones with little training data
                 	test_object_index = random.randrange(1, 33)
-
+                        #print ('query_prop_names:' + str(query_prop_names))
                 	print('request_prop_names: ' + str(request_prop_names))
-                	model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index)
+                	model = Model(0.99, irrelevant_prop, 0.7, -50.0, test_object_index)
                 	model.write_to_file('model.pomdp')
 
-                	print 'Predicates of query: ', query_prop_names
-                	# for p in request_prop_names: 
-                	#     print(model._classifiers[test_object_index].isPredicateTrue(p, str(test_object_index)))
+                    
                 
 		else:
 		
-                	# the user can ask about at most 3 predicates
-                	query_length = random.randrange(num_props, num_props+1)
-                	#request_prop_names = random.sample(predicates, query_length)
-			random.seed(i)
-                	shuffledpredicates=predicates[:]
-                	random.shuffle(shuffledpredicates)
-                	request_prop_names=shuffledpredicates[0:query_length]
-                	# request_prop_names = ['bright', 'half-full']
+                	
                 	# we use totally 32 objects, after filtering out the ones with little training data
                 	test_object_index = random.randrange(1, 33)
 
@@ -466,7 +443,7 @@ def main(argv):
                 # planner = 'pomdp'
                 # look -> press -> grasp -> lift -> hold -> lower -> drop 
                 # planner = 'predefined'
-                if planner == 'pomdp-unrelated':
+                if planner == 'pomdp-irrelevant':
 
                     policy_name = 'output.policy'
                     applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
@@ -491,9 +468,9 @@ def main(argv):
                     policy = Policy(len(model._states), len(model._actions), policy_name)
 
                     print('starting simulation')
-                    simulator = Simulator(model, policy, object_prop_names, query_prop_names)
+                    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
 
-                if planner == 'pomdp-related':
+                elif planner == 'pomdp':
 
                     policy_name = 'output.policy'
                     applPath1 = '/home/szhang/software/appl/appl-0.96/src/pomdpsol'
@@ -557,12 +534,16 @@ def main(argv):
     #Creating plots for different planners and three predicates
     for count,metric in enumerate(list(df)):
         ax=plt.subplot(1,len(list(df)),count+1)
-
+        '''
         l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
         l2 = plt.plot([1,2,3],df.loc['predefined_plus1':'predefined_plus3',metric],marker='o',linestyle='--',label='Predefined Plus')
         l3 = plt.plot([1,2,3],df.loc['predefined1':'predefined3',metric],marker='D',linestyle=':',label='Predefined')
         l4 = plt.plot([1,2,3],df.loc['random_plus1':'random_plus3',metric],marker='x',linestyle='-.',label='Random Plus')
         l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='Random')
+        '''
+        l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
+        l2 = plt.plot([1,2,3],df.loc['pomdp-irrelevant1':'pomdp-irrelevant3',metric],marker='o',linestyle='--',label='MOMDp-irrelevant')
+        
         plt.ylabel(metric)
 	plt.xlim(0.5,3.5)
 	xleft , xright =ax.get_xlim()
@@ -573,10 +554,11 @@ def main(argv):
         plt.xlabel('Number of Properties')
         
         
-    ax.legend(loc='upper left', bbox_to_anchor=(-3.10, 1.25),  shadow=True, ncol=5)
+    #ax.legend(loc='upper left', bbox_to_anchor=(-3.10, 1.25),  shadow=True, ncol=5)
+    ax.legend(loc='upper left', bbox_to_anchor=(-2.70, 1.35),  shadow=True, ncol=2)      # This is for irrelevant
     fig.tight_layout() 
     plt.show()
-    fig.savefig('Results_200_trials')
+    fig.savefig('Results_10_trials')
 
 
 
