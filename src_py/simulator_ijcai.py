@@ -21,7 +21,7 @@ import copy
 
 class Simulator(object):
 
-    def __init__(self, model = None, policy = None, object_prop_names = None, request_prop_names = None):
+    def __init__(self, model = None, policy = None, object_prop_names = None, request_prop_names = None,irrelevant_prop=None):
         self._model = model
         self._policy = policy
         self._object_prop_names = object_prop_names
@@ -30,7 +30,7 @@ class Simulator(object):
         self._color_values = ['brown','green','blue']
         self._weight_values = ['light','medium','heavy']
         self._content_values = ['glass','screws','beans','rice']
-
+        self._irrelevant_prop=irrelevant_prop
         # with "ask" action
         self._predefined_action_sequence = [8, 0, 7, 1, 2, 3, 4, 5]
         self._legal_actions = {
@@ -57,7 +57,8 @@ class Simulator(object):
         # return s_idx, self._model._states[s_idx]
 
         s_name = 's0p'
-        for r in self._request_prop_names:
+        #for r in self._request_prop_names:
+	for r in self._irrelevant_prop:
             if r in self._object_prop_names:
                 s_name += '1'
             else:
@@ -65,9 +66,9 @@ class Simulator(object):
 
         for s_idx, s_val in enumerate(self._model._states):
 
-           if (s_name in s_val._name):
+           #if (s_name in s_val._name):
 
-            #s_val._name == s_name:
+           if s_val._name == s_name:
                 return s_idx, s_val
         else:
             sys.exit('Error in initializing state')
@@ -389,8 +390,8 @@ def main(argv):
 		random.seed(i)
                 shuffledpredicates=predicates[:]
                 random.shuffle(shuffledpredicates)
-                #request_prop_names=shuffledpredicates[0:query_length]
-                request_prop_names = ['round', 'aluminum']
+                request_prop_names=shuffledpredicates[0:query_length]
+                #request_prop_names = ['round', 'aluminum']
 
                 
 		if planner =='pomdp-irrelevant':
@@ -476,7 +477,7 @@ def main(argv):
                     policy = Policy(len(model._states), len(model._actions), policy_name)
 
                     print('starting simulation')
-                    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+                    simulator = Simulator(model, policy, object_prop_names, request_prop_names,irrelevant_prop)
 
                 elif planner == 'pomdp':
 
@@ -503,7 +504,7 @@ def main(argv):
                     policy = Policy(len(model._states), len(model._actions), policy_name)
 
                     print('starting simulation')
-                    simulator = Simulator(model, policy, object_prop_names, request_prop_names)
+                    simulator = Simulator(model, policy, object_prop_names, request_prop_names,request_prop_names)
 
 
                 elif planner == 'random' or planner == 'random_plus' or planner == 'predefined' or planner == 'predefined_plus':
@@ -553,7 +554,7 @@ def main(argv):
         l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='Random')
         '''
         #l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
-        l1 = plt.plot([0,1,2,3,4],df.loc['pomdp0':'pomdp-irrelevant4',metric],marker='o',linestyle='--',label='MOMDp-irrelevant')
+        l1 = plt.plot([0,1,2,3,4],df.loc['pomdp-irrelevant0':'pomdp-irrelevant4',metric],marker='o',linestyle='--',label='MOMDp-irrelevant')
         
         plt.ylabel(metric)
 	plt.xlim(-0.5,4.5)
