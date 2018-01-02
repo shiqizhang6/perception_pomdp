@@ -64,7 +64,10 @@ class Simulator(object):
                 s_name += '0'
 
         for s_idx, s_val in enumerate(self._model._states):
-            if s_val._name == s_name:
+
+           if (s_name in s_val._name):
+
+            #s_val._name == s_name:
                 return s_idx, s_val
         else:
             sys.exit('Error in initializing state')
@@ -349,7 +352,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 50
+    num_trials = 200
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -363,14 +366,16 @@ def main(argv):
     df=pd.DataFrame()                                                 #Creating a dataframe for plotting
 
     #for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
-    for planner in ['pomdp','pomdp-irrelevant']:	
+    for planner in ['pomdp-irrelevant']:
+	num_props=2
 
-        for num_props in [1,2,3]:
+        for num_irr in [0,1,2,3,4]:
 	
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
             max_cost = 50
+
 	    
             for i in range(num_trials): 
 
@@ -384,17 +389,19 @@ def main(argv):
 		random.seed(i)
                 shuffledpredicates=predicates[:]
                 random.shuffle(shuffledpredicates)
-                request_prop_names=shuffledpredicates[0:query_length]
-                # request_prop_names = ['bright', 'half-full']
+                #request_prop_names=shuffledpredicates[0:query_length]
+                request_prop_names = ['round', 'aluminum']
 
                 
 		if planner =='pomdp-irrelevant':
 			
 			for item in request_prop_names:
                             shuffledpredicates.remove(item)
-   			irrelevant_prop=random.sample(shuffledpredicates,query_length)  			            
-     
+   			irrelevant_prop=random.sample(shuffledpredicates,num_irr)
+            		irrelevant_prop=request_prop_names+ irrelevant_prop
+
                 	# we use totally 32 objects, after filtering out the ones with little training data
+                        random.seed(i)
                 	test_object_index = random.randrange(1, 33)
                         #print ('query_prop_names:' + str(query_prop_names))
                 	print('request_prop_names: ' + str(request_prop_names))
@@ -407,6 +414,7 @@ def main(argv):
 		
                 	
                 	# we use totally 32 objects, after filtering out the ones with little training data
+                        random.seed(i)
                 	test_object_index = random.randrange(1, 33)
 
                 	print('request_prop_names: ' + str(request_prop_names))
@@ -522,9 +530,12 @@ def main(argv):
             print printout
             
             #Storing the results in a pandas.DataFrame for plotting
-            df.at[planner+ str(num_props),'Overall reward']= overall_reward/float(num_trials)
-            df.at[planner+ str(num_props),'Overall cost']= abs(overall_action_cost/float(num_trials))
-            df.at[planner+ str(num_props),'Success rate']= float(success_trials)/num_trials           
+           # df.at[planner+ str(num_props),'Overall reward']= overall_reward/float(num_trials)
+           # df.at[planner+ str(num_props),'Overall cost']= abs(overall_action_cost/float(num_trials))
+           # df.at[planner+ str(num_props),'Success rate']= float(success_trials)/num_trials           
+            df.at[planner+ str(num_irr),'Overall reward']= overall_reward/float(num_trials)
+            df.at[planner+ str(num_irr),'Overall cost']= abs(overall_action_cost/float(num_trials))
+            df.at[planner+ str(num_irr),'Success rate']= float(success_trials)/num_trials
 
     print printout
     print df
@@ -541,24 +552,25 @@ def main(argv):
         l4 = plt.plot([1,2,3],df.loc['random_plus1':'random_plus3',metric],marker='x',linestyle='-.',label='Random Plus')
         l5 = plt.plot([1,2,3],df.loc['random':'random3',metric],marker='^',linestyle='-.',label='Random')
         '''
-        l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
-        l2 = plt.plot([1,2,3],df.loc['pomdp-irrelevant1':'pomdp-irrelevant3',metric],marker='o',linestyle='--',label='MOMDp-irrelevant')
+        #l1 = plt.plot([1,2,3],df.loc['pomdp1':'pomdp3',metric],marker='*',linestyle='-',label='MOMDP(ours)')
+        l1 = plt.plot([0,1,2,3,4],df.loc['pomdp0':'pomdp-irrelevant4',metric],marker='o',linestyle='--',label='MOMDp-irrelevant')
         
         plt.ylabel(metric)
-	plt.xlim(0.5,3.5)
+	plt.xlim(-0.5,4.5)
 	xleft , xright =ax.get_xlim()
 	ybottom , ytop = ax.get_ylim()
 	ax.set_aspect(aspect=abs((xright-xleft)/(ybottom-ytop)), adjustable=None, anchor=None)
        
 	
-        plt.xlabel('Number of Properties')
+        #plt.xlabel('Number of Properties')
+        plt.xlabel('Number of irrelevant Properties')
         
         
     #ax.legend(loc='upper left', bbox_to_anchor=(-3.10, 1.25),  shadow=True, ncol=5)
     ax.legend(loc='upper left', bbox_to_anchor=(-2.70, 1.35),  shadow=True, ncol=2)      # This is for irrelevant
     fig.tight_layout() 
     plt.show()
-    fig.savefig('Results_10_trials')
+    fig.savefig('Results_200_trials')
 
 
 
