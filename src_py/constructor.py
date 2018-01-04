@@ -47,10 +47,11 @@ class Obs(object):
 
 class Model:
 
-    def __init__(self, discount, prop_names, high_acc, ask_cost, test_object_index): 
+    def __init__(self, discount, prop_names, high_acc, ask_cost, test_object_index,irrelevant_prop): 
         self._discount = discount
         self._num_comp_states = 6
         self._prop_names = prop_names
+	self._irrelevant_prop=irrelevant_prop
         self._high = high_acc
         self._ask_cost = ask_cost
 
@@ -77,7 +78,7 @@ class Model:
     def generate_state_set(self):
 
         for i in range(self._num_comp_states):
-            self.generate_state_set_helper(i, 0, [], len(self._prop_names))
+            self.generate_state_set_helper(i, 0, [], len(self._irrelevant_prop))
 
         self._states.append(State(True, None, None))
 
@@ -144,7 +145,8 @@ class Model:
     def generate_observation_set(self):
 
 
-        self.generate_observation_set_helper(0, [], len(self._prop_names))
+        #self.generate_observation_set_helper(0, [], len(self._prop_names))
+	self.generate_observation_set_helper(0, [], len(self._irrelevant_prop))
         self._observations.append(Obs(True, None))
 
         # print(str([o._name for o in self._observations]))
@@ -416,9 +418,10 @@ class Model:
                     for p_s_idx, p_s_val in enumerate(s_val._prop_values):
 
                         p_o_val = o_val._prop_values[p_s_idx]
-
+			
                         # mat = self.dic[a_val._name][self._prop_names[p_s_idx]]
-                        mat = self._classifiers[test_object_index].getPredicateBehaviorObservatoinModel(self._prop_names[p_s_idx], a_val._name)
+                        #mat = self._classifiers[test_object_index].getPredicateBehaviorObservatoinModel(self._prop_names[p_s_idx], a_val._name)
+			mat = self._classifiers[test_object_index].getPredicateBehaviorObservatoinModel(self._irrelevant_prop[p_s_idx], a_val._name)
 
                         if p_s_val == '0' and p_o_val == '0':
                             prob = prob * mat[0][0] / (mat[0][0] + mat[1][0])
@@ -460,7 +463,7 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = -22.0
                 elif a_val._term == False and a_val._name == 'reinit':
                     self._reward_fun[a_idx, s_idx] = -10.0
-                elif a_val._prop_values == s_val._prop_values:
+                elif a_val._prop_values in s_val._prop_values:
                     self._reward_fun[a_idx, s_idx] = 200.0
                 else:
                     self._reward_fun[a_idx, s_idx] = -200.0

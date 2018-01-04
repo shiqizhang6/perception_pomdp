@@ -353,7 +353,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 200
+    num_trials = 1
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -370,7 +370,7 @@ def main(argv):
     for planner in ['pomdp-irrelevant']:
 	num_props=2
 
-        for num_irr in [0,1,2,3,4]:
+        for num_irr in [1,2]:
 	
             overall_reward = 0
             overall_action_cost = 0
@@ -406,7 +406,7 @@ def main(argv):
                 	test_object_index = random.randrange(1, 33)
                         #print ('query_prop_names:' + str(query_prop_names))
                 	print('request_prop_names: ' + str(request_prop_names))
-                	model = Model(0.99, irrelevant_prop, 0.7, -50.0, test_object_index)
+                	model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index,irrelevant_prop)
                 	model.write_to_file('model.pomdp')
 
                     
