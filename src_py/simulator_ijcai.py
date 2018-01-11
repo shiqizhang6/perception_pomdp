@@ -353,7 +353,7 @@ def main(argv):
 
     print('initializing model and solver')
 
-    num_trials = 1
+    num_trials = 200
 
     predicates = ['text', 'yellow', 'bright', 'half-full', 'silver', 'rattles', \
     'aluminum', 'large', 'small', 'round', 'heavy', 'container', 'tube', 'red', \
@@ -368,15 +368,15 @@ def main(argv):
 
     #for planner in ['pomdp', 'predefined', 'predefined_plus', 'random', 'random_plus']:
     for planner in ['pomdp-irrelevant']:
-	num_props=2
+	num_props=1
 
-        for num_irr in [1,2]:
+        for num_irr in [0,1,2,3,4,5]:
 	
             overall_reward = 0
             overall_action_cost = 0
             success_trials = 0
-            max_cost = 50
-
+            max_cost = 50.0
+	    ask_cost= 150.0
 	    
             for i in range(num_trials): 
 
@@ -387,7 +387,7 @@ def main(argv):
                 # the user can ask about at most 3 predicates
                 query_length = random.randrange(num_props, num_props+1)
                 #request_prop_names = random.sample(predicates, query_length)
-		random.seed(i)
+		random.seed(200+num_trials - i)
                 shuffledpredicates=predicates[:]
                 random.shuffle(shuffledpredicates)
                 request_prop_names=shuffledpredicates[0:query_length]
@@ -402,11 +402,11 @@ def main(argv):
             		irrelevant_prop=request_prop_names+ irrelevant_prop
 
                 	# we use totally 32 objects, after filtering out the ones with little training data
-                        random.seed(i)
+                        random.seed(200+num_trials- i)
                 	test_object_index = random.randrange(1, 33)
                         #print ('query_prop_names:' + str(query_prop_names))
                 	print('request_prop_names: ' + str(request_prop_names))
-                	model = Model(0.99, request_prop_names, 0.7, -50.0, test_object_index,irrelevant_prop)
+                	model = Model(0.99, request_prop_names, 0.7, -1.0*ask_cost, test_object_index,irrelevant_prop)
                 	model.write_to_file('model.pomdp')
 
                     
@@ -540,7 +540,7 @@ def main(argv):
 
     print printout
     print df
-
+    df.to_csv("Results_"+str(num_trials)+"_constant_props_"+str(num_props)+"pomdp_irrelevants_ask_cost_"+str(ask_cost)+"_max_cost_"+str(max_cost)+"_action_set_same_as_query.csv", encoding='utf-8', index=True)
     fig=plt.figure(figsize=(8,3))
     
     #Creating plots for different planners and three predicates
@@ -568,10 +568,10 @@ def main(argv):
         
         
     #ax.legend(loc='upper left', bbox_to_anchor=(-3.10, 1.25),  shadow=True, ncol=5)
-    ax.legend(loc='upper left', bbox_to_anchor=(-2.70, 1.35),  shadow=True, ncol=2)      # This is for irrelevant
+    ax.legend(loc='upper left', bbox_to_anchor=(-2.00, 1.35),  shadow=True, ncol=2)      # This is for irrelevant
     fig.tight_layout() 
     plt.show()
-    fig.savefig('Results_200_trials')
+    fig.savefig('Results_'+str(num_trials)+'_trials_'+str(num_props)+'_queries_ask_cost'+str(ask_cost)+'_max_cost_'+str(max_cost)+'.png')
 
 
 

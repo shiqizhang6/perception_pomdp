@@ -130,6 +130,7 @@ class Model:
         self._actions.append(Action(False, 'reinit', None)) #9
 
         self.generate_action_set_helper(0, [], len(self._prop_names))
+        #self.generate_action_set_helper(0, [], len(self._irrelevant_prop))
 
         # print(str([a._name for a in self._actions]))
         # exit(1)
@@ -463,10 +464,11 @@ class Model:
                     self._reward_fun[a_idx, s_idx] = -22.0
                 elif a_val._term == False and a_val._name == 'reinit':
                     self._reward_fun[a_idx, s_idx] = -10.0
-                elif a_val._prop_values in s_val._prop_values:
-                    self._reward_fun[a_idx, s_idx] = 200.0
+                elif a_val._prop_values == s_val._prop_values[0:len(a_val._prop_values)]:
+                #elif a_val._prop_values == s_val._prop_values:
+                    self._reward_fun[a_idx, s_idx] = 500.0
                 else:
-                    self._reward_fun[a_idx, s_idx] = -200.0
+                    self._reward_fun[a_idx, s_idx] = -500.0
 
     def write_to_file(self, path):
         
