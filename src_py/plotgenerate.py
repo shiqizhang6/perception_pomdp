@@ -10,7 +10,7 @@ def plot_irrelevant(filename,xaxis,file_extension, xfont):
 
     df = pd.read_csv(filename).drop(['Unnamed: 0'],axis=1)
     print df
-    fig=plt.figure(figsize=(8,2.6))
+    fig=plt.figure(figsize=(8,2.75))
 
   
     for count,metric in enumerate(list(df)):
@@ -37,7 +37,7 @@ def plot_all_strategies(filename,xaxis,file_extension, xfont):
 
     df = pd.read_csv(filename).drop(['Unnamed: 0'],axis=1)
     print df
-    fig=plt.figure(figsize=(8,2.9))
+    fig=plt.figure(figsize=(8,2.76))
 
     #Creating plots for different planners and three predicates
     for count,metric in enumerate(list(df)):
@@ -65,8 +65,8 @@ def plot_all_strategies(filename,xaxis,file_extension, xfont):
 
 
 
-    ax.legend(loc='upper left', bbox_to_anchor=(-3.15, 1.25),  shadow=True, ncol=5)
-    
+    ax.legend(loc='upper left', bbox_to_anchor=(-3.23, 1.22),  shadow=True, ncol=5)
+        
     fig.tight_layout()
     plt.show()
         #fig.savefig('Results_'+str(num_trials)+'_trials_'+str(num_props)+'_queries_ask_cost'+str(ask_cost)+'_max_cost_prob65.png')
