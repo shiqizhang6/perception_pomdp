@@ -12,23 +12,23 @@ Also, please download and compile ["this"](https://github.com/AdaCompNUS/sarsop)
  pomdp solver. Then provide the 'pomdpsol' path to the `pathlist` ["here"](https://github.com/shiqizhang6/perception_pomdp/blob/shiqi/ijcai_dataset_testing_new/src_py/simulator_ijcai.py#L461).
 
 ## Run the experiments:
-Please download the repo and make sure you are in the branch `shiqi/ijcai_dataset_testing_new`:
-`$ git clone https://github.com/shiqizhang6/perception_pomdp.git `
-`$ cd perception-pomdp`
-`$ git checkout shiqi/ijcai_dataset_testing_new`
-And then create a folder for storing the classifiers.
+Please download the repo and make sure you are in the branch `shiqi/ijcai_dataset_testing_new`: </br>
+`$ git clone https://github.com/shiqizhang6/perception_pomdp.git ` </br>
+`$ cd perception-pomdp` </br>
+`$ git checkout shiqi/ijcai_dataset_testing_new` </br>
+And then create a folder for storing the classifiers. </br>
 `$ cd src_py`
 `$ mkdir pomdp_classifiers`
 
 ### Training classifers
-In order to train classifiers,
-`python classifier_ijcai2016.py`
+In order to train classifiers,</br>
+`python classifier_ijcai2016.py` </br>
 It will take around 2 hours and half to train all classifiers.
 
 ### Figure 7 of the paper:
 `python simulator_ijcai.py`
 ### Figure 6 of the paper:
-`git checkout 4e8d4`
+`git checkout 4e8d4`</br>
 `python simulator_ijcai.py`  
 
 ## Important files:
